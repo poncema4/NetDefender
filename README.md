@@ -2,379 +2,409 @@
 
 **Simulated Enterprise Network Security & Cryptography Environment**
 
-> **Course:** Network Security Engineering & Cryptography  
-> **Project Type:** Final Course MVP / Proof of Concept  
-> **Status:** Planned MVP
+**Course:** Network Security Engineering & Cryptography  
+**Project:** Final Course MVP / Proof of Concept  
+**Status:** Planned
 
-## Overview
+## 1. Project Overview
 
-NetDefender is a controlled network-security laboratory designed to demonstrate how secure enterprise network architecture, cryptography, monitoring, detection, and defensive controls work together.
+NetDefender is a controlled network-security laboratory that models a small enterprise environment and validates its security architecture through controlled testing.
 
-The project will model a small enterprise environment with separated network zones, firewall controls, intrusion detection, secure remote access, encrypted communications, and controlled security testing.
+The project will combine network segmentation, firewall policy, intrusion detection, secure remote access, TLS, cryptographic operations, packet analysis, and reconnaissance testing into one coherent environment.
 
 The central question is:
 
-> **Does the secure network architecture actually detect, contain, and defend against controlled attacks?**
+> **Does the network architecture behave as intended when it is tested under controlled attack conditions?**
 
-Rather than producing a generic security score, NetDefender will demonstrate security through network behavior: traffic is generated, observed, detected, and either permitted or blocked according to the architecture and defensive controls.
+The MVP will focus on building a small network that can be configured, tested, observed, and defended. It will not attempt to reproduce a full enterprise SOC or production network.
 
-## Course
+## 2. Course Alignment
 
-**Seton Hall University — Network Security Engineering & Cryptography**
+NetDefender is designed for **Seton Hall University — Network Security Engineering & Cryptography**.
 
-NetDefender is designed around the course topics involving cryptographic foundations, TLS/HTTPS, PKI, network architecture, segmentation, firewalls, IDS/IPS, VPNs, Wireshark traffic analysis, controlled MITM/replay scenarios, wireless security concepts, OpenSSL/GPG, and network security testing with tools such as Nmap and Kali.
+The project directly connects to course topics including:
 
-## Problem
+- Symmetric and asymmetric cryptography
+- AES concepts
+- RSA/ECC concepts
+- Hashing and HMAC
+- Digital signatures
+- PKI and certificate management
+- TLS/HTTPS
+- Network architecture and segmentation
+- Firewalls
+- IDS/IPS
+- VPNs
+- Wireshark traffic analysis
+- Kali Linux
+- Nmap
+- OpenSSL
+- GPG
+- Controlled MITM/replay concepts where appropriate
+- Network security auditing
 
-A network can contain individual security controls and still be poorly designed if those controls are not connected through a coherent architecture.
+## 3. Problem Statement
 
-NetDefender addresses this by creating a small simulated enterprise network and then testing whether its architecture and controls behave as intended under controlled attack scenarios.
+Individual network-security tools do not automatically produce a secure network. A firewall, IDS, VPN, or encrypted protocol must operate within an architecture that defines trust boundaries, permitted communication, and defensive responsibilities.
 
-The project emphasizes the relationship between:
+NetDefender will address this by building a small simulated enterprise network and then testing the architecture from the perspective of both an administrator and a controlled attacker.
+
+The project will connect architecture to observable evidence:
 
 ```text
 Network Architecture
         ↓
-Security Control
+Security Policy
         ↓
-Observed Traffic
+Controlled Test / Attack
         ↓
-Attack / Test
+Network Traffic
         ↓
-Detection
+Detection / Enforcement
         ↓
-Defense / Mitigation
+Evidence and Analysis
 ```
 
-## Project Goal
+## 4. Project Objectives
 
-The goal of NetDefender is to build a functional proof of concept of a secure enterprise network environment and validate its design through controlled testing.
+The MVP will aim to:
 
-The MVP should demonstrate:
+1. Design a small enterprise network with meaningful trust zones.
+2. Implement firewall rules between those zones.
+3. Deploy intrusion detection for selected suspicious activity.
+4. Provide secure remote access through a VPN.
+5. Demonstrate encrypted application traffic using TLS/HTTPS.
+6. Generate and inspect certificates/cryptographic material with OpenSSL where appropriate.
+7. Capture and analyze network traffic with Wireshark.
+8. Use Kali Linux and Nmap for controlled reconnaissance.
+9. Produce technical evidence showing how the defensive controls respond to the tests.
 
-1. Network segmentation.
-2. Firewall policy enforcement.
-3. Intrusion detection.
-4. Secure remote connectivity through VPN concepts.
-5. Encrypted communication using TLS/HTTPS.
-6. Packet and protocol analysis with Wireshark.
-7. Controlled reconnaissance and attack traffic using Kali/Nmap.
-8. Cryptographic operations and certificate/key concepts using appropriate tools.
-9. Evidence that the defensive controls change or detect the resulting network behavior.
+## 5. MVP Scope
 
-## MVP Scope
+### 5.1 Network Segmentation
 
-The MVP will intentionally model a small enterprise environment rather than attempting to reproduce a large production network.
+The initial topology will contain a small number of zones with distinct security purposes:
 
-### 1. Enterprise Network Segmentation
+- **Untrusted / external network**
+- **DMZ** for intentionally exposed services
+- **Internal enterprise network**
+- **VPN access path** for remote users
 
-The environment will contain logically separated network zones such as:
+The goal is to demonstrate that systems do not all share the same trust level and that communication between zones is explicitly controlled.
 
-- Internet / untrusted network
-- DMZ
-- Internal enterprise network
-- VPN access path
+### 5.2 Firewall Policy
 
-Segmentation will be used to demonstrate how network placement and access rules reduce unnecessary exposure between systems.
+A pfSense firewall will control traffic between the simulated zones.
 
-### 2. Firewall
+The MVP will include policies for:
 
-A firewall will enforce traffic policies between the simulated network zones.
+- Permitted public-facing services
+- Restricted DMZ-to-internal communication
+- Controlled administrative access
+- Blocked unauthorized connections
+- VPN access to selected internal resources
 
-The MVP will demonstrate rules such as:
+The important result is not simply the existence of firewall rules; it is evidence that the rules affect what traffic is permitted.
 
-- Allowed traffic to intentionally exposed services.
-- Restricted traffic between network zones.
-- Blocked unauthorized access attempts.
-- Controlled administrative access.
+### 5.3 Intrusion Detection
 
-The objective is to show policy enforcement as part of the network architecture rather than simply displaying firewall configuration.
+Snort will monitor selected network traffic and identify controlled reconnaissance or suspicious activity.
 
-### 3. Intrusion Detection
-
-An IDS/IPS component such as Snort will monitor relevant traffic and identify selected suspicious or malicious patterns.
-
-The MVP will demonstrate at least one controlled attack or reconnaissance scenario that generates detectable traffic.
-
-Expected flow:
+The initial demonstration will use a small number of detection scenarios that can be reproduced reliably.
 
 ```text
 Kali / Test Host
        ↓
-Controlled Network Activity
+Controlled Reconnaissance
        ↓
-Firewall / Network Path
+Network Traffic
        ↓
-Snort Detection
+Snort
        ↓
-Alert / Defensive Action
+Alert / Defensive Response
 ```
 
-### 4. Network Traffic Analysis
+### 5.4 Traffic Analysis
 
-Wireshark will be used to inspect and explain network traffic generated during the demonstrations.
+Wireshark will provide packet-level evidence for the demonstrations.
 
-The project will use packet captures to demonstrate concepts such as:
+The project will inspect traffic such as:
 
 - TCP/IP communication
-- HTTP versus HTTPS
+- HTTP and HTTPS
 - TLS negotiation
-- DNS or other relevant protocol behavior
-- Reconnaissance traffic
-- Detection-related traffic patterns
+- DNS where relevant
+- Port scanning/reconnaissance
+- Traffic associated with IDS alerts
 
-The goal is to connect the abstract security concept to the actual packets traveling through the network.
+The objective is to explain what is happening on the network rather than treating the tools as black boxes.
 
-### 5. TLS / HTTPS
+### 5.5 TLS / HTTPS
 
-The environment will include a secure web-communication demonstration using TLS certificates and HTTPS.
+A service in the simulated environment will use HTTPS with a certificate generated or inspected using OpenSSL.
 
-The project will demonstrate how cryptographic protection changes what an observer can learn from network traffic compared with unencrypted HTTP.
+The project will compare encrypted and unencrypted communication where appropriate to demonstrate what TLS protects and what a packet observer can actually see.
 
-Where appropriate, OpenSSL will be used to inspect or create certificates and cryptographic material in the controlled environment.
+### 5.6 VPN
 
-### 6. VPN
+OpenVPN will provide a controlled remote-access scenario.
 
-The MVP will demonstrate secure remote connectivity using a VPN technology such as OpenVPN.
+The demonstration will show how an authenticated, encrypted tunnel changes the path and protection of remote network access compared with an untrusted direct connection.
 
-The demonstration will show the difference between a direct untrusted connection and authenticated/encrypted access through the VPN path.
+### 5.7 Cryptography
 
-### 7. Cryptography Demonstration
+Cryptography will be demonstrated in the context of network security rather than as a disconnected set of exercises.
 
-NetDefender will include focused cryptographic demonstrations relevant to the network environment.
+The MVP may include:
 
-Potential demonstrations include:
-
-- Symmetric encryption concepts
+- Symmetric encryption
 - Public-key cryptography
 - Hashing
 - HMAC
 - Digital signatures
-- Certificate validation
+- Certificate generation and validation
 - Key generation and management concepts
 - OpenSSL operations
-- GPG operations where useful
+- GPG operations where they directly support the demonstration
 
-The cryptography component will be connected to real network-security use cases rather than existing as a disconnected collection of command-line exercises.
+The final selection will be kept small enough to explain each operation clearly.
 
-### 8. Controlled Security Testing
+### 5.8 Controlled Reconnaissance
 
-Kali Linux and Nmap will be used to conduct controlled reconnaissance and security testing against the isolated lab environment.
+Kali Linux and Nmap will be used only against the isolated lab environment.
 
-Potential demonstrations include:
+The initial tests may include:
 
 - Host discovery
 - Port scanning
 - Service enumeration
-- Suspicious traffic generation
-- Controlled attack scenarios relevant to the architecture
+- Controlled suspicious traffic
+- Security-control validation
 
-All testing will remain within the intentionally isolated lab environment.
+The purpose is to validate the network architecture, not to perform unrestricted penetration testing.
 
-## Planned Architecture
+## 6. Planned Architecture
 
-The initial architecture is expected to resemble:
+The initial design will follow a small enterprise-style topology:
 
 ```text
-                         Untrusted Network
-                                |
-                                v
-                         +--------------+
-                         |    pfSense   |
-                         |   Firewall   |
-                         +--------------+
-                           /     |      \
-                          /      |       \
-                         v       v        v
-                      DMZ    Internal     VPN
-                       |      Network      |
-                       |         |         |
-                       v         v         v
-                    Web/App   Internal   Remote
-                    Services  Services    User
-                         \       |        /
-                          \      |       /
-                           +-----+------+
-                                 |
-                                 v
-                            Snort IDS/IPS
-                                 |
-                                 v
-                         Security Monitoring
+                         External / Untrusted Network
+                                      |
+                                      v
+                               +-------------+
+                               |   pfSense   |
+                               |   Firewall  |
+                               +-------------+
+                                /      |      \
+                               /       |       \
+                              v        v        v
+                            DMZ     Internal     VPN
+                             |       Network      |
+                             |          |         |
+                             v          v         v
+                          Web/App   Internal    Remote
+                          Service   Services     User
+                              \        |        /
+                               \       |       /
+                                +------+------+
+                                       |
+                                       v
+                                  Snort IDS/IPS
+                                       |
+                                       v
+                                Alert / Evidence
 
-Kali / Test Host → Controlled Attack Traffic → Network → Detection / Defense
+        Kali / Test Host → Controlled Activity → Network → Detection / Defense
+
+        Wireshark → Packet Capture / Protocol Analysis
+        OpenSSL   → Certificates / Cryptographic Operations
 ```
 
-The exact topology and virtualization implementation will be finalized during MVP development.
+The exact virtual-machine and interface configuration will be finalized during implementation.
 
-## Attack-and-Defense Model
+## 7. Tech Stack
 
-NetDefender will use controlled attacks to validate the defensive architecture.
+| Area | Technology | Purpose |
+|---|---|---|
+| Firewall / Router | **pfSense** | Network segmentation and policy enforcement |
+| IDS/IPS | **Snort** | Detection of selected suspicious network activity |
+| Attacker / Test Host | **Kali Linux** | Controlled reconnaissance and security testing |
+| Traffic Analysis | **Wireshark** | Packet capture and protocol analysis |
+| Network Discovery | **Nmap** | Host discovery, port scanning, and service enumeration |
+| TLS / Certificates | **OpenSSL** | Certificate and cryptographic operations |
+| File / Message Cryptography | **GPG** | Selected encryption/signature demonstrations |
+| VPN | **OpenVPN** | Secure remote network access |
+| Virtualization | **VirtualBox** | Isolated laboratory infrastructure where appropriate |
+| Configuration | **pfSense/Snort configuration files and documented rules** | Reproducible network/security setup |
+| Documentation | **Markdown** | Architecture, procedures, findings, and evidence |
 
-A representative demonstration will follow this pattern:
+Unlike the other two projects, NetDefender will not require a traditional web frontend/backend application for its MVP. The primary product is the **network environment and its observable security behavior**.
+
+## 8. Planned Repository Structure
+
+The repository will organize the network design, configurations, testing procedures, and evidence by responsibility.
 
 ```text
-1. Establish secure network architecture
-              ↓
-2. Generate controlled reconnaissance
-              ↓
-3. Observe traffic with Wireshark
-              ↓
-4. Detect activity with Snort
-              ↓
-5. Enforce firewall policy where applicable
-              ↓
-6. Review evidence
-              ↓
-7. Explain mitigation and architectural impact
+NetDefender/
+├── architecture/
+│   ├── diagrams/
+│   ├── topology/
+│   └── addressing/
+├── firewall/
+│   └── pfsense/
+├── ids/
+│   └── snort/
+├── vpn/
+│   └── openvpn/
+├── crypto/
+│   ├── openssl/
+│   └── gpg/
+├── testing/
+│   ├── nmap/
+│   ├── wireshark/
+│   └── attack-scenarios/
+├── evidence/
+├── docs/
+└── README.md
 ```
 
-This approach makes the project demonstrable: the network is not merely configured; it is tested.
+The exact files and configuration format will be established during implementation. The structure is intended to keep architecture, defensive configuration, cryptography, testing, and evidence clearly separated.
 
-## Cryptography and Network Security Relationship
+## 9. Attack-and-Defense Validation
 
-A central design goal is to show that cryptography is part of network security architecture rather than a separate topic.
+The project will validate the network through controlled scenarios.
 
-Examples include:
+A representative test will follow this sequence:
 
 ```text
-TLS
- ↓
+1. Configure the network architecture
+              ↓
+2. Establish firewall and IDS controls
+              ↓
+3. Generate controlled reconnaissance from Kali
+              ↓
+4. Capture the traffic with Wireshark
+              ↓
+5. Observe Snort detection
+              ↓
+6. Verify firewall enforcement where applicable
+              ↓
+7. Record technical evidence
+              ↓
+8. Explain the architectural control that produced the result
+```
+
+This approach makes the network demonstrable. The environment is not only configured; it is challenged and validated.
+
+## 10. Cryptography in the Network
+
+A major goal is to connect cryptographic mechanisms to the network services they protect.
+
+### TLS / HTTPS
+
+```text
+Certificate + Public-Key Cryptography
+                ↓
+               TLS
+                ↓
+Encrypted Application Traffic
+                ↓
 Confidentiality + Integrity + Authentication
- ↓
-Secure Application Communication
 ```
 
-and:
+### VPN
 
 ```text
-VPN
- ↓
-Authenticated / Encrypted Tunnel
- ↓
-Protected Remote Network Access
+Authentication + Encryption
+          ↓
+     VPN Tunnel
+          ↓
+Protected Remote Access
 ```
 
-The project will use these relationships to explain why cryptographic mechanisms matter to the network as a whole.
+### Integrity / Authentication
 
-## Course Concepts Demonstrated
+Hashing, HMAC, signatures, and certificates will be used where they help explain real security properties of network communication.
 
-The MVP is intended to demonstrate practical understanding of:
-
-- Symmetric cryptography
-- AES concepts
-- Public-key cryptography
-- RSA / ECC concepts
-- Hashing
-- SHA
-- HMAC
-- Digital signatures
-- PKI
-- TLS
-- HTTPS
-- Certificate creation and validation
-- Secure network architecture
-- Network segmentation
-- Defense in depth
-- Firewalls
-- IDS/IPS
-- Snort
-- VPNs
-- OpenVPN
-- Wireshark
-- Kali Linux
-- Nmap
-- Controlled MITM/replay concepts where appropriate
-- Secure wireless concepts where appropriate
-- OpenSSL
-- GPG
-- Network security auditing
-
-## Design Principles
-
-### Controlled Environment
-
-All attack and testing activity will occur within a deliberately isolated lab environment. The project is not intended to test third-party networks.
+## 11. Security Principles
 
 ### Defense in Depth
 
-Security will not depend on a single control. Segmentation, firewall policy, encryption, detection, and authentication will work together.
+The environment will rely on multiple controls: segmentation, firewall policy, encryption, VPN access, and intrusion detection.
+
+### Explicit Trust Boundaries
+
+Network zones will have defined security purposes and communication between zones will be controlled.
 
 ### Observable Security
 
-Every major demonstration should produce evidence that can be inspected through packets, logs, alerts, firewall decisions, certificates, or other technical artifacts.
+Major demonstrations should produce evidence in the form of packets, alerts, firewall decisions, certificates, logs, or other technical artifacts.
 
 ### Architecture Before Tools
 
-Tools such as pfSense, Snort, Wireshark, Kali, and Nmap will support the architecture rather than becoming the architecture themselves.
+pfSense, Snort, Wireshark, Kali, and Nmap are implementation and validation tools. The network security architecture comes first.
 
-### Small, Complete MVP
+### Controlled Testing
 
-The project will prioritize a small network that can be fully configured, attacked, observed, defended, and explained rather than a large topology that cannot be completed reliably.
+All attack and reconnaissance activity will remain inside the intentionally isolated laboratory.
 
-## Expected Demonstration
+## 12. Expected Demonstration
 
-A final MVP demonstration should show a complete scenario such as:
+The final MVP should support a concise end-to-end demonstration:
 
-1. Present the enterprise network architecture.
-2. Explain the trust zones and firewall policies.
-3. Establish secure remote access through the VPN.
-4. Generate controlled reconnaissance from Kali.
-5. Observe the resulting traffic in Wireshark.
-6. Show the corresponding IDS detection.
-7. Demonstrate firewall enforcement where applicable.
-8. Compare protected and unprotected network communication using TLS/HTTPS.
-9. Inspect certificate or cryptographic evidence.
-10. Explain how the controls work together to protect the simulated enterprise.
+1. Present the enterprise topology and trust zones.
+2. Explain the firewall policy.
+3. Establish VPN access.
+4. Show HTTPS/TLS configuration and certificate evidence.
+5. Launch controlled reconnaissance from Kali.
+6. Observe the resulting packets in Wireshark.
+7. Show the corresponding Snort detection.
+8. Demonstrate firewall enforcement where applicable.
+9. Review the evidence.
+10. Explain how the controls work together as a layered defense.
 
-## Out of Scope for the MVP
+## 13. Out of Scope for the MVP
 
-The initial proof of concept will intentionally avoid unnecessary enterprise complexity.
+The first version will intentionally avoid unnecessary enterprise complexity.
 
-The following are not required for the MVP:
+Out of scope:
 
-- Large-scale production network deployment
-- Internet-facing infrastructure
-- Enterprise SIEM deployment
-- Full SOC automation
-- Dozens of VLANs or network segments
-- Comprehensive vulnerability scanning across the Internet
-- Real-world third-party penetration testing
-- Complete wireless enterprise deployment
-- Advanced automated incident response
+- Internet-facing production infrastructure
+- Large enterprise topology
+- Full SOC/SIEM deployment
+- Large-scale automated incident response
+- Dozens of network segments
+- Internet-wide vulnerability scanning
+- Testing third-party networks
+- Complete enterprise wireless deployment
+- Advanced automated attack orchestration
 - A generic security score
 
-Additional capabilities may be considered after the core network is functional.
+## 14. Future Enhancements
 
-## Future Enhancements
+If time permits after the core MVP is stable, possible additions include:
 
-Potential future enhancements include:
-
-- More network zones and VLANs
-- Additional Snort rules
-- Automated alert collection
+- Additional VLANs and trust zones
+- More Snort rules
 - Centralized logging
 - Expanded VPN scenarios
 - Additional TLS/certificate experiments
-- More advanced Nmap testing
+- IPsec
 - Controlled MITM/replay demonstrations
-- Wireless security lab components
-- IPsec demonstrations
-- More detailed cryptographic key-management workflows
-- Additional attack-and-defense scenarios
+- Wireless security scenarios
+- More detailed key-management workflows
+- Additional attack-and-defense cases
 
-These enhancements are secondary to completing the core MVP.
+These enhancements are secondary to the core architecture and validation workflow.
 
-## Development Philosophy
+## 15. Project Definition
 
-NetDefender will be developed incrementally. The priority is to create one complete attack-and-defense path before expanding the environment.
+NetDefender is a **network-security engineering proof of concept**. The project will demonstrate that a secure network is the result of architecture, policy, cryptographic protection, monitoring, and testing working together.
 
-Every implemented component should answer a concrete security question and produce evidence that can be inspected and explained.
+The finished MVP should provide enough technical evidence to answer three questions:
 
-The final MVP should demonstrate not only that security tools were configured, but that the resulting architecture behaves differently when security controls are correctly applied.
+1. **How was the network designed to be secure?**
+2. **What happened when the design was tested?**
+3. **What evidence shows that the defensive controls worked?**
 
-## Academic Context
-
-This repository represents the project concept and implementation for **Network Security Engineering & Cryptography**. It is intended to demonstrate an original proof of concept applying network architecture, defensive engineering, cryptography, and controlled security testing to a simulated enterprise environment.
-
-Implementation, testing, documentation, and final presentation materials will be developed as the project progresses.
+That is the basis of the project's final proof of concept.
