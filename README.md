@@ -2,16 +2,13 @@
 
 **Simulated Enterprise Network Security Environment**
 
-**Course:** Network Security Engineering & Cryptography  
-**Project:** Final MVP / Proof of Concept
-
 ## Overview
 
 NetDefender is a controlled enterprise-network security lab used to design, test, and validate a small defensive network architecture. The MVP will combine segmentation, firewall policy, intrusion detection, VPN access, TLS, and cryptographic controls.
 
 ## Problem
 
-A network can have individual security controls and still be poorly protected if those controls are not connected through a clear architecture. NetDefender will test whether the designed controls actually behave as intended under controlled network activity.
+A network can have individual security controls and still be poorly protected if those controls are not connected through a clear architecture. NetDefender will test whether the designed controls behave as intended under controlled network activity.
 
 ## Objectives
 
@@ -26,16 +23,14 @@ A network can have individual security controls and still be poorly protected if
 
 ## MVP Scope
 
-The MVP will include:
-
-- An isolated enterprise-style topology with untrusted, DMZ, internal, and VPN zones.
-- pfSense firewall rules between the zones.
+- Isolated enterprise-style topology with untrusted, DMZ, internal, and VPN zones.
+- pfSense firewall rules between zones.
 - Snort IDS detection for selected activity.
 - Kali/Nmap reconnaissance and testing.
 - Wireshark packet captures for evidence.
 - TLS certificates and HTTPS using OpenSSL.
 - OpenVPN remote-access demonstration.
-- Focused demonstrations of hashing, HMAC, public-key cryptography, and digital signatures where relevant.
+- Focused demonstrations of hashing, HMAC, public-key cryptography, and digital signatures.
 
 ## Architecture / Workflow
 
@@ -67,17 +62,21 @@ Review Evidence
 
 ## Tech Stack
 
-- **Firewall / Routing:** pfSense
-- **IDS/IPS:** Snort
-- **Testing Platform:** Kali Linux
-- **Reconnaissance:** Nmap
-- **Traffic Analysis:** Wireshark
-- **TLS / Certificates:** OpenSSL
-- **VPN:** OpenVPN
-- **Cryptographic Tools:** OpenSSL and GPG where useful
-- **Virtualization:** Oracle VirtualBox
-- **Documentation / Configuration:** Markdown and configuration files
-- **Version Control:** Git / GitHub
+| Area | Technology |
+|---|---|
+| Firewall / Routing | pfSense |
+| IDS/IPS | Snort |
+| Testing Platform | Kali Linux |
+| Reconnaissance | Nmap |
+| Traffic Analysis | Wireshark |
+| TLS / Certificates | OpenSSL |
+| VPN | OpenVPN |
+| Cryptographic Tools | OpenSSL, GPG |
+| Virtualization | Oracle VirtualBox |
+| Documentation / Configuration | Markdown, configuration files |
+| Version Control | Git / GitHub |
+
+All planned software and services are free to use for this project. No paid services are required for the MVP.
 
 ## Project Structure
 
@@ -112,9 +111,7 @@ NetDefender/
 
 ## Expected Demonstration
 
-A controlled reconnaissance attempt will generate network traffic that can be observed in Wireshark and detected by Snort, while pfSense enforces the defined network policy. A separate TLS/HTTPS demonstration will show how encryption changes what can be observed in captured traffic.
-
-All testing will remain inside the isolated lab environment.
+Controlled reconnaissance will generate traffic that can be observed in Wireshark and detected by Snort while pfSense enforces the defined network policy. A separate TLS/HTTPS demonstration will show how encryption changes what can be observed in captured traffic.
 
 ## Out of Scope
 
