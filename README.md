@@ -76,8 +76,6 @@ Review Evidence
 | Documentation / Configuration | Markdown, configuration files |
 | Version Control | Git / GitHub |
 
-All planned software and services are free to use for this project. No paid services are required for the MVP.
-
 ## Project Structure
 
 ```text
