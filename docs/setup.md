@@ -1,86 +1,157 @@
 # NetDefender Setup
 
-## Phase 1 — Isolated Virtual Network
+## Phase 1 — Isolated Lab + Software Foundation
 
-Phase 1 establishes the foundation for the NetDefender MVP. Do not configure the IDS, VPN, TLS demonstrations, or attack scenarios until the base network is verified.
+Phase 1 establishes two things:
+
+1. a working, isolated Kali Linux → Metasploitable network lab; and
+2. the software repository foundation that later phases will build into the NetDefender analyzer.
+
+Do not scan anything until the target IP has been verified as the user's own Metasploitable VM.
 
 ## Required Software
 
-- Oracle VirtualBox
-- pfSense virtual machine
-- Kali Linux virtual machine
-- A small Linux server/client VM for the DMZ
-- A small Linux client/server VM for the Internal zone
+The MVP is intentionally lightweight:
 
-Additional VPN and service VMs may be added only when required by later phases.
+- VMware Workstation
+- Kali Linux
+- Metasploitable
+- Nmap
+- Wireshark (or tshark)
+- Python 3
+- Git
+- GitHub
+- GitHub Actions
 
-## Phase 1 Topology
+All listed software is free to use for this project/lab. NetDefender does not require pfSense, Snort, OpenVPN, or a large collection of third-party security products for the MVP.
+
+## Phase 1 Network
 
 ```text
-Kali Linux
-(Untrusted)
-     |
-     v
-  pfSense
-  /  |  \\
- v   v   v
-DMZ Internal VPN
+┌──────────────┐       isolated VM network       ┌─────────────────┐
+│  Kali Linux  │ ──────────────────────────────> │  Metasploitable │
+│  Test Source │                                 │     Target      │
+└──────────────┘                                 └─────────────────┘
 ```
 
-The exact VirtualBox adapter configuration and IP plan are intentionally recorded only after the VMs are created. This prevents documentation from claiming an address or interface that has not been verified.
+The exact IP addresses are recorded only after they are observed from the VMs. Do not invent addresses in the documentation.
 
 ## Isolation Requirement
 
-The NetDefender lab must use VirtualBox networking that keeps test traffic inside the intended lab. Do not use NetDefender's Kali/Nmap tests against university networks, public IP addresses, third-party systems, or unrelated host devices.
+Use a VMware network configuration that keeps NetDefender test traffic inside the intended lab. Prefer an isolated/private VM network for Kali ↔ Metasploitable traffic.
 
-When a VirtualBox adapter is configured for a mode that provides access beyond the isolated lab, document why it is required and ensure test traffic remains limited to authorized lab addresses.
+Do not use NetDefender's Nmap tests against:
+
+- university networks
+- public IP addresses
+- third-party systems
+- neighbors' devices
+- unrelated host devices
+
+Metasploitable is intentionally vulnerable and should not be exposed to the Internet.
 
 ## Phase 1 Procedure
 
-### 1. Create the VMs
+### 1. Start the VMs
 
-Prepare the pfSense, Kali, DMZ, and Internal virtual machines. The VPN role will be connected during the VPN phase; it does not need to be fully implemented in Phase 1.
+Boot Kali Linux and Metasploitable in VMware.
 
-### 2. Create the lab networks
+### 2. Verify the Metasploitable address
 
-Create the isolated VirtualBox network segments required to represent the planned trust zones. Record each network name and subnet in `topology/ip-plan.md` once verified.
+On Metasploitable, run:
 
-### 3. Configure pfSense interfaces
+```bash
+ifconfig
+```
 
-Assign the pfSense interfaces to the appropriate trust zones. Record the interface names and addresses from the actual pfSense configuration.
+or, if available:
 
-### 4. Configure endpoints
+```bash
+ip addr
+```
 
-Connect Kali to the Untrusted side and connect the DMZ/Internal systems to their respective networks. Record the actual addresses with commands such as `ip addr` on Linux systems.
+Identify the IPv4 address assigned to the lab interface. Record the actual value in `topology/ip-plan.md`.
 
-### 5. Verify connectivity
+### 3. Verify Kali networking
 
-From Kali, verify connectivity to the intended pfSense interface. From each endpoint, verify only the connectivity expected at this stage.
+On Kali:
 
-At this phase, successful connectivity is only a topology check. Firewall policy will be made explicit in Phase 2.
+```bash
+ip addr
+ip route
+```
 
-### 6. Capture evidence
+Confirm Kali has an interface connected to the same isolated VM network.
 
-Save screenshots showing:
+### 4. Verify reachability
 
-- VirtualBox network/VM configuration.
-- pfSense interface assignments.
-- IP configuration on Kali and the other endpoints.
-- Connectivity tests.
+From Kali, ping the verified Metasploitable address:
 
-Do not commit secrets, private keys, passwords, or other sensitive host information.
+```bash
+ping -c 4 <METASPLOITABLE_IP>
+```
+
+A successful response establishes basic IP connectivity. It does not yet prove that any application service is reachable.
+
+### 5. Confirm the target identity
+
+Before running Nmap, confirm that the address belongs to the Metasploitable VM and is not another system on the network.
+
+### 6. Install/verify Python tooling
+
+On Kali or the development environment:
+
+```bash
+python3 --version
+python3 -m pip --version
+```
+
+Create a virtual environment when implementing the Python application:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 7. Run the initial test suite
+
+After the Phase 1 software skeleton is present:
+
+```bash
+python3 -m pytest
+```
+
+The expected result is a passing baseline test suite. Later phases will add parser, detection, and cryptography tests.
+
+### 8. Verify GitHub Actions
+
+Push the project to GitHub and confirm the repository's test workflow runs successfully. CI should remain independent of the live Kali/Metasploitable lab; automated tests use deterministic sample data rather than requiring a VM.
+
+## Evidence to Capture
+
+Phase 1 evidence should include:
+
+- VMware view showing the two lab VMs.
+- Metasploitable `ifconfig` or `ip addr` output.
+- Kali `ip addr` output.
+- Kali route information.
+- Successful Kali → Metasploitable ping.
+- Repository structure showing the NetDefender software foundation.
+- Successful GitHub Actions run.
+
+Do not commit passwords, private keys, host-specific secrets, or unnecessary personal/network information.
 
 ## Phase 1 Exit Criteria
 
 Phase 1 is complete when:
 
-- The required VMs boot successfully.
-- The trust-zone topology is documented.
-- pfSense interfaces are assigned and verified.
-- Actual IP addressing is documented.
-- Kali can reach the intended lab gateway/interface.
-- DMZ and Internal endpoints are reachable as intended for the initial topology check.
-- Evidence has been captured.
-- The lab's isolation boundary is understood.
+- Kali and Metasploitable boot successfully.
+- Both VMs are connected to the intended isolated network.
+- The Metasploitable IP is verified and documented.
+- Kali can reach Metasploitable.
+- The repository contains the NetDefender application skeleton.
+- A deterministic automated test baseline passes locally.
+- GitHub Actions verifies the same baseline.
+- The isolation boundary is understood.
 
-After these criteria are met, Phase 2 begins with pfSense firewall rules and segmentation.
+After these criteria are met, Phase 2 begins with controlled Nmap reconnaissance and evidence collection.
