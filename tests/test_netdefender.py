@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from netdefender.analyzer import analyze
 from netdefender.crypto import hmac_sha256_hex, sha256_hex, verify_hmac
+from netdefender.evidence import build_manifest, verify_manifest
 from netdefender.models import NetworkEvent
 from netdefender.parser import parse_json
 from netdefender.report import render_html
@@ -52,6 +53,15 @@ def test_crypto_integrity():
     assert len(digest) == 64
     assert verify_hmac(data, secret, tag)
     assert not verify_hmac(data + b"tampered", secret, tag)
+
+
+def test_evidence_manifest_detects_tampering():
+    data = b"controlled packet evidence"
+    secret = b"test-only-secret"
+    findings = analyze([event(port) for port in range(20, 32)])
+    manifest = build_manifest(findings, data, secret)
+    assert verify_manifest(data, manifest, secret)
+    assert not verify_manifest(data + b"tampered", manifest, secret)
 
 
 def test_html_report_contains_finding():
