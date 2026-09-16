@@ -4,12 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netdefender"
-version = "0.1.0"
-description = "Controlled network security monitoring and cryptographic evidence lab"
-requires-python = ">=3.10"
+version = "0.2.0"
+description = "Controlled network-security monitoring and cryptographic evidence lab"
+requires-python = ">=3.11"
+dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9"]
+
+[project.scripts]
+netdefender = "netdefender.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
