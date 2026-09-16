@@ -1,17 +1,13 @@
-"""Core data models for normalized network observations."""
+"""Core data models for NetDefender."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
 class NetworkEvent:
-    """A normalized observation of network traffic.
-
-    Later phases will populate these objects from packet captures or
-    structured exports. Keeping a stable model makes detection rules
-    independent from the original capture format.
-    """
+    """Normalized observation of one network packet/event."""
 
     timestamp: datetime
     source_ip: str
@@ -20,3 +16,16 @@ class NetworkEvent:
     source_port: int | None = None
     destination_port: int | None = None
     tcp_flags: str | None = None
+    packet_length: int | None = None
+
+
+@dataclass(frozen=True)
+class Finding:
+    """Explainable security finding produced by a detection rule."""
+
+    rule_id: str
+    title: str
+    severity: str
+    source_ip: str
+    destination_ip: str
+    evidence: dict[str, Any] = field(default_factory=dict)
