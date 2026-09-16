@@ -6,7 +6,7 @@ from netdefender.detectors import detect
 from netdefender.models import NetworkEvent
 
 
-def test_network_event_round_trip_through_analyzer() -> None:
+def test_single_network_event_is_not_a_detection_by_itself() -> None:
     event = NetworkEvent(
         timestamp=datetime.now(timezone.utc),
         source_ip="10.10.10.10",
@@ -17,10 +17,12 @@ def test_network_event_round_trip_through_analyzer() -> None:
         tcp_flags="SYN",
     )
 
-    assert analyze([event]) == [event]
+    # The analyzer returns security findings, not raw events. A single SYN
+    # packet is intentionally below the reconnaissance detection threshold.
+    assert analyze([event]) == []
 
 
-def test_phase_one_detector_has_no_findings_without_detection_rules() -> None:
+def test_detector_returns_no_findings_for_empty_input() -> None:
     assert detect([]) == []
 
 
