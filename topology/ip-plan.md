@@ -1,26 +1,47 @@
 # NetDefender IP Plan
 
-This file is the source of truth for the implemented Phase 1 network addressing.
+> Populate this file from the running lab. Do not invent or guess addresses.
 
 ## Status
 
-**Phase 1: Pending physical/virtual network implementation.**
-
-No IP addresses are listed until they are assigned and verified in the lab.
+**Phase 1: Pending lab verification.**
 
 ## Addressing Table
 
-| Zone | Device | Interface | IP Address | Gateway | Status |
-|---|---|---|---|---|---|
-| Untrusted | Kali Linux | TBD | TBD | TBD | Pending |
-| Untrusted | pfSense | TBD | TBD | N/A | Pending |
-| DMZ | pfSense | TBD | TBD | N/A | Pending |
-| DMZ | DMZ Server | TBD | TBD | TBD | Pending |
-| Internal | pfSense | TBD | TBD | N/A | Pending |
-| Internal | Internal Client/Server | TBD | TBD | TBD | Pending |
-| VPN | pfSense | TBD | TBD | N/A | Later phase |
-| VPN | VPN Client | TBD | TBD | TBD | Later phase |
+| System | Interface | IPv4 | Network | Status |
+|---|---|---|---|---|
+| Kali Linux | Lab interface | TBD | Isolated VMware network | Pending |
+| Metasploitable | Lab interface | TBD | Isolated VMware network | Pending |
+
+## Verification Commands
+
+### Kali
+
+```bash
+ip addr
+ip route
+```
+
+### Metasploitable
+
+```bash
+ifconfig
+```
+
+or:
+
+```bash
+ip addr
+```
+
+### Connectivity
+
+From Kali, after confirming the Metasploitable address:
+
+```bash
+ping -c 4 <METASPLOITABLE_IP>
+```
 
 ## Recording Rule
 
-Only verified values from VirtualBox, pfSense, and the guest operating systems should be entered here. This file should be updated whenever the implemented topology changes.
+Only verified values from the running VMware guests should be entered here. This file becomes the source of truth for later Nmap commands, packet captures, fixtures, and final documentation.
