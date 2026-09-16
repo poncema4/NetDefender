@@ -2,145 +2,117 @@
 
 ## 1. Purpose
 
-NetDefender is a controlled network-security laboratory backed by a purpose-built analysis application. It is designed for ISCI 6101: Network Security Engineering & Cryptography.
+NetDefender is a controlled network-security laboratory backed by a purpose-built analysis application for ISCI 6101: Network Security Engineering & Cryptography.
 
-The architecture deliberately keeps the number of external systems small. VMware, Kali, and Metasploitable provide the isolated environment; Nmap and Wireshark/tshark generate and expose network evidence; NetDefender provides the primary coding and analysis work.
+The project deliberately keeps external infrastructure small. The user's VMware lab supplies controlled traffic; NetDefender supplies the primary software engineering, detection, cryptographic evidence, and reporting work.
 
 ## 2. High-Level Architecture
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    ISOLATED VM LAB                          │
-│                                                             │
-│   ┌───────────────┐       controlled       ┌──────────────┐ │
-│   │   Kali Linux  │ ─────── Nmap ─────────>│Metasploitable│ │
-│   │ Test / Source │       traffic           │    Target    │ │
-│   └───────────────┘                         └──────┬───────┘ │
-│                                                    │         │
-│                         packet capture             │         │
-│                              ┌─────────────────────┘         │
-│                              v                               │
-│                       Wireshark / tshark                     │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               │ pcap / structured events
-                               v
-┌─────────────────────────────────────────────────────────────┐
-│                       NETDEFENDER                           │
-│                                                             │
-│  Input → Parser → Normalizer → Detector → Finding Report   │
-│                              │                              │
-│                              v                              │
-│                    Evidence Integrity                       │
-│                     SHA-256 + HMAC                          │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               v
-                       Tests + CI Validation
-                         GitHub Actions
+┌──────────────────── CONTROLLED LAB ────────────────────┐
+│                                                        │
+│   Kali Linux ── Nmap ──> Metasploitable               │
+│       │                         │                      │
+│       └────── Wireshark/tshark capture ───────────────┘
+└───────────────────────────┬────────────────────────────┘
+                            │ pcap / structured events
+                            v
+┌────────────────────────────────────────────────────────┐
+│                    NETDEFENDER                         │
+│                                                        │
+│  Input → Parser → Normalizer → Detection Engine        │
+│                              │                         │
+│                              v                         │
+│                 Findings + Evidence                    │
+│                              │                         │
+│                              v                         │
+│                 SHA-256 + HMAC                         │
+│                              │                         │
+│                              v                         │
+│                    HTML / JSON Report                  │
+└───────────────────────────┬────────────────────────────┘
+                            v
+                    GitHub Actions CI
 ```
 
 ## 3. Core Components
 
-### 3.1 Lab Environment
+### 3.1 Network Event Model
 
-VMware provides the virtualization layer. Kali is the authorized test source and Metasploitable is the intentionally vulnerable target. The virtual network must be isolated so generated traffic cannot accidentally reach unrelated systems.
+`NetworkEvent` provides a stable representation of observed traffic: timestamp, source/destination addresses, protocol, ports, TCP flags, and packet length. Detection rules do not depend on the original capture format.
 
-### 3.2 Traffic Collection
+### 3.2 Input Parser
 
-Nmap is used to create repeatable reconnaissance traffic. Wireshark or tshark is used to inspect and capture that traffic. Packet captures and derived structured data become controlled input to NetDefender.
+The parser accepts JSON and CSV event data. This gives the project a deterministic test interface before real packet captures are introduced. Later lab work can export relevant Wireshark/tshark fields into the same model.
 
-### 3.3 Event Parser
+### 3.3 Detection Engine
 
-The parser converts raw or structured network observations into a consistent internal representation. The first implementation will prioritize useful fields such as:
+The first detection rules target observable reconnaissance behavior:
 
-- timestamp
-- source IP
-- destination IP
-- source port
-- destination port
-- transport protocol
-- TCP flags when available
-- packet/event type
+- `NET-RECON-001`: burst of TCP SYN probes to many destination ports.
+- `NET-RECON-002`: burst of UDP probes to many destination ports.
 
-The parser should reject malformed input cleanly rather than silently creating misleading events.
+Rules are intentionally deterministic and explainable. A finding records the rule, source, target, severity, port evidence, packet count, and observation window.
 
-### 3.4 Detection Engine
+### 3.4 Cryptographic Evidence
 
-The first detector will focus on reconnaissance/port-scanning behavior. Detection logic should be deterministic and explainable.
+SHA-256 creates a deterministic digest of an evidence artifact. HMAC-SHA256 demonstrates integrity/authenticity when a shared secret is available. Verification uses constant-time comparison for the HMAC check.
 
-A finding should identify:
+The crypto layer is connected to the detection workflow: NetDefender produces evidence, then creates and verifies cryptographic metadata for that evidence.
 
-- what was detected
-- source and target
-- relevant ports/protocols
-- evidence supporting the detection
-- detection rule used
-- timestamp/window where applicable
-- confidence or severity only when the value has a documented meaning
+### 3.5 Reporting
 
-The project will avoid pretending that one heuristic can detect every form of malicious traffic.
+The MVP generates JSON findings and a dependency-free HTML report. A TypeScript browser interface remains a possible later enhancement, but it will only be added if it improves the final demonstration without distracting from network security.
 
-### 3.5 Cryptographic Evidence
-
-NetDefender will use SHA-256 to create a deterministic digest of evidence and HMAC to demonstrate integrity/authenticity when a shared secret is available.
-
-The application will support an explicit verification operation so a captured evidence file can be checked before and after controlled modification.
-
-Cryptography is part of the design rather than a separate demo pasted onto the project: the detector produces evidence, and the crypto layer protects the integrity of that evidence.
-
-### 3.6 Reporting
-
-The MVP will generate a readable report containing detections, supporting network evidence, and integrity metadata. A lightweight TypeScript UI may be added later if it materially improves presentation; it is not required for the core engine.
-
-## 4. Data Flow
+## 4. Current Software Flow
 
 ```text
-Nmap scan
-   ↓
-Captured packets / exported events
-   ↓
+JSON/CSV events
+      ↓
 Parser
-   ↓
-Normalized NetworkEvent objects
-   ↓
-Detection rules
-   ↓
+      ↓
+NetworkEvent objects
+      ↓
+TCP/UDP reconnaissance rules
+      ↓
 Finding objects
-   ↓
-Evidence serialization
-   ↓
-SHA-256 / HMAC
-   ↓
-Report
+      ↓
+JSON + HTML report
+      ↓
+Evidence digest / HMAC verification
 ```
 
-## 5. Design Decisions
+## 5. Phase Organization
+
+The phases are intentionally ordered so all coding that can be completed away from the laptop happens first. The physical lab work comes after the software is ready.
+
+| Phase | Focus | Work location | Status |
+|---|---|---|---|
+| 1 | Software architecture + data model | Anywhere | **Complete foundation** |
+| 2 | Parser + validation | Anywhere | **Implemented** |
+| 3 | Detection engine | Anywhere | **Implemented** |
+| 4 | Cryptographic evidence | Anywhere | **Implemented** |
+| 5 | Reporting / analyst output | Anywhere | **Implemented** |
+| 6 | Automated testing + GitHub Actions | Anywhere | **Implemented / expanding** |
+| 7 | VMware lab setup | Laptop | Pending |
+| 8 | Real Nmap + Wireshark integration | Laptop | Pending |
+| 9 | End-to-end validation + evidence | Laptop | Pending |
+| 10 | Final report + presentation | Anywhere | Pending |
+
+## 6. Design Decisions
 
 ### Why Python?
 
-Python is the core implementation language because it keeps packet/data parsing, detection logic, cryptography, and automated testing cohesive. The goal is substantial engineering rather than a collection of languages.
+Python keeps parsing, detection, cryptography, reporting, and testing in one cohesive codebase. It also minimizes installation burden on the lab machine.
 
-### Why allow TypeScript?
+### Why not add many enterprise products?
 
-A small TypeScript frontend can be introduced if the final report/dashboard benefits from a browser interface. It remains optional so the project does not become a frontend-development project instead of a network-security project.
+pfSense, Snort, OpenVPN, and similar systems can demonstrate useful concepts, but using all of them would turn the project into an infrastructure-configuration project. NetDefender instead uses a small controlled lab and puts the engineering depth into the software itself.
 
-### Why not pfSense/Snort/OpenVPN for the MVP?
+### Why not add another language immediately?
 
-Those are valuable enterprise technologies, but adding them all would shift the project toward infrastructure configuration and create a much larger dependency footprint. NetDefender instead focuses on a smaller number of controls that can be implemented, tested, explained, and demonstrated in depth.
-
-## 6. Phase Plan
-
-1. **Isolated lab + software foundation** — configure Kali/Metasploitable networking and establish the Python project structure and CI baseline.
-2. **Reconnaissance collection** — run controlled Nmap scenarios and save sanitized evidence.
-3. **Traffic parsing** — implement event models, parsers, validation, and normalization.
-4. **Detection engine** — implement and test reconnaissance detection rules.
-5. **Cryptographic evidence** — add SHA-256/HMAC generation and verification.
-6. **Reporting/UI** — create a useful security report and optionally a small TypeScript interface.
-7. **Testing + CI** — expand automated tests and enforce repeatable verification through GitHub Actions.
-8. **Integration** — execute end-to-end lab scenarios and collect final evidence.
-9. **Submission** — finalize documentation, report, presentation, and reproducibility instructions.
+A second language is useful only when it solves a real project problem. The current dependency-free HTML reporting layer gives a polished analyst-facing output without adding a frontend framework. TypeScript can be introduced later if a browser UI becomes technically justified.
 
 ## 7. Security Boundary
 
-All test traffic must remain inside the controlled NetDefender lab. The target IPs used by Nmap must be verified as the user's own Metasploitable VM before scanning.
+All Nmap/security testing must remain inside the user's controlled VMware lab and target only the user's Metasploitable VM or other explicitly authorized lab systems.
