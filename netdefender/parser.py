@@ -14,6 +14,11 @@ from .models import NetworkEvent
 def _timestamp(value: str | None) -> datetime:
     if not value:
         return datetime.now(timezone.utc)
+    try:
+        if value.replace(".", "", 1).isdigit():
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+    except ValueError:
+        pass
     normalized = value.replace("Z", "+00:00")
     parsed = datetime.fromisoformat(normalized)
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
