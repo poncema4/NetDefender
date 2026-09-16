@@ -20,16 +20,16 @@ The project deliberately keeps external infrastructure small. The user's VMware 
 ┌────────────────────────────────────────────────────────┐
 │                    NETDEFENDER                         │
 │                                                        │
-│  Input → Parser → Normalizer → Detection Engine        │
+│ Input → Parser → Normalizer → Detection Engine         │
 │                              │                         │
 │                              v                         │
-│                 Findings + Evidence                    │
+│                    Findings + Evidence                 │
 │                              │                         │
 │                              v                         │
-│                 SHA-256 + HMAC                         │
+│                     SHA-256 + HMAC                     │
 │                              │                         │
 │                              v                         │
-│                    HTML / JSON Report                  │
+│                     HTML / JSON Report                 │
 └───────────────────────────┬────────────────────────────┘
                             v
                     GitHub Actions CI
@@ -43,16 +43,18 @@ The project deliberately keeps external infrastructure small. The user's VMware 
 
 ### 3.2 Input Parser
 
-The parser accepts JSON and CSV event data. This gives the project a deterministic test interface before real packet captures are introduced. Later lab work can export relevant Wireshark/tshark fields into the same model.
+The parser accepts JSON and CSV event data and normalizes timestamps and numeric fields. The optional PCAP adapter invokes tshark and converts selected packet fields into the same event model.
 
 ### 3.3 Detection Engine
 
-The first detection rules target observable reconnaissance behavior:
+The supported reconnaissance rules are:
 
 - `NET-RECON-001`: burst of TCP SYN probes to many destination ports.
 - `NET-RECON-002`: burst of UDP probes to many destination ports.
 
 Rules are intentionally deterministic and explainable. A finding records the rule, source, target, severity, port evidence, packet count, and observation window.
+
+The complete rule contract is documented in `docs/rules.md`.
 
 ### 3.4 Cryptographic Evidence
 
@@ -62,24 +64,36 @@ The crypto layer is connected to the detection workflow: NetDefender produces ev
 
 ### 3.5 Reporting
 
-The MVP generates JSON findings and a dependency-free HTML report. A TypeScript browser interface remains a possible later enhancement, but it will only be added if it improves the final demonstration without distracting from network security.
+The application generates structured findings and a dependency-free HTML report. A TypeScript browser interface remains a possible later enhancement, but it will only be added if it solves a real analyst-facing problem.
+
+### 3.6 Local Setup Automation
+
+The repository provides:
+
+- `scripts/setup.sh` for Linux-like shells;
+- `scripts/setup.ps1` for Windows PowerShell;
+- `docs/setup.md` as the detailed setup and troubleshooting guide.
+
+The setup scripts create the virtual environment, install the project/test dependency, run the complete test suite, run the deterministic CLI sample, and check optional tshark availability.
 
 ## 4. Current Software Flow
 
 ```text
-JSON/CSV events
-      ↓
-Parser
-      ↓
-NetworkEvent objects
-      ↓
-TCP/UDP reconnaissance rules
-      ↓
-Finding objects
-      ↓
-JSON + HTML report
-      ↓
-Evidence digest / HMAC verification
+JSON/CSV events OR PCAP/PCAPNG
+              ↓
+      Parser / tshark adapter
+              ↓
+       NetworkEvent objects
+              ↓
+      Reconnaissance rules
+              ↓
+         Finding objects
+              ↓
+      JSON + HTML report
+              ↓
+   SHA-256 / HMAC evidence
+              ↓
+       Integrity verification
 ```
 
 ## 5. Phase Organization
@@ -88,16 +102,22 @@ The phases are intentionally ordered so all coding that can be completed away fr
 
 | Phase | Focus | Work location | Status |
 |---|---|---|---|
-| 1 | Software architecture + data model | Anywhere | **Complete foundation** |
+| 1 | Software architecture + data model | Anywhere | **Complete** |
 | 2 | Parser + validation | Anywhere | **Implemented** |
 | 3 | Detection engine | Anywhere | **Implemented** |
 | 4 | Cryptographic evidence | Anywhere | **Implemented** |
 | 5 | Reporting / analyst output | Anywhere | **Implemented** |
-| 6 | Automated testing + GitHub Actions | Anywhere | **Implemented / expanding** |
+| 6 | Automated testing + GitHub Actions + local setup automation | Anywhere | **In verification** |
 | 7 | VMware lab setup | Laptop | Pending |
 | 8 | Real Nmap + Wireshark integration | Laptop | Pending |
 | 9 | End-to-end validation + evidence | Laptop | Pending |
 | 10 | Final report + presentation | Anywhere | Pending |
+
+### Phase 6 definition of done
+
+Phase 6 is not considered complete merely because a workflow file exists. The latest commit must have a successful CI run across the supported matrix, and the failure history must be understood and corrected at the underlying implementation/test/configuration layer.
+
+Once Phase 6 is verified green, the coding-first milestone is complete and the project moves to Phase 7.
 
 ## 6. Design Decisions
 
@@ -113,6 +133,16 @@ pfSense, Snort, OpenVPN, and similar systems can demonstrate useful concepts, bu
 
 A second language is useful only when it solves a real project problem. The current dependency-free HTML reporting layer gives a polished analyst-facing output without adding a frontend framework. TypeScript can be introduced later if a browser UI becomes technically justified.
 
-## 7. Security Boundary
+## 7. CI Design
+
+GitHub Actions tests the actual package installation rather than simply importing files from the checkout. The matrix covers Ubuntu and Windows across Python 3.11–3.14, then runs pytest and the CLI smoke test.
+
+The workflow uses explicit Python versions and current GitHub-maintained setup actions. GitHub's current `setup-python` documentation recommends explicit version selection and supports dependency caching through the action.
+
+The local setup scripts and CI use the same fundamental installation/test contract so that CI failures are more likely to represent real project problems rather than a completely different environment.
+
+## 8. Security Boundary
 
 All Nmap/security testing must remain inside the user's controlled VMware lab and target only the user's Metasploitable VM or other explicitly authorized lab systems.
+
+No conclusion from NetDefender should be presented as broader than the controlled traffic actually tested.
