@@ -1,176 +1,223 @@
 # NetDefender
-**Simulated Enterprise Network Security Environment**
+**Network Security Monitoring & Cryptographic Evidence Lab**
 
 ## Overview
-NetDefender is a controlled enterprise-network security lab used to design, test, and validate a small defensive network architecture. The MVP combines network segmentation, firewall policy, intrusion detection, VPN access, TLS, and focused cryptographic demonstrations.
 
-NetDefender is intentionally a **security environment/lab**, not one monolithic security application. Each technology has a defined role in the architecture, and the final demonstrations connect those controls through repeatable, observable scenarios.
+NetDefender is a controlled network-security lab and software project for **ISCI 6101: Network Security Engineering & Cryptography**. The project combines a small Kali/Metasploitable virtual lab with a purpose-built security analysis application.
+
+The goal is to make network-security concepts observable through code instead of building a large collection of unrelated enterprise products.
+
+NetDefender is intentionally **not a monolithic enterprise appliance**. The virtual machines generate controlled traffic, while NetDefender performs the coding-heavy analysis, detection, evidence integrity, and reporting work.
+
+## Core Flow
+
+```text
+Build Isolated Lab
+       ↓
+Controlled Reconnaissance
+       ↓
+Capture Network Traffic
+       ↓
+NetDefender Analysis
+       ↓
+Detect Suspicious Activity
+       ↓
+Cryptographically Protect Evidence
+       ↓
+Review Detection Report
+       ↓
+Automated CI Validation
+```
 
 ## Problem
-A network can have individual security controls and still be poorly protected if those controls are not connected through a clear architecture. NetDefender tests whether the designed controls behave as intended under controlled network activity and provides packet, alert, firewall, and configuration evidence for the results.
+
+Network reconnaissance can generate observable traffic before an attack reaches an application or host. A security analyst needs to turn that low-level network activity into understandable evidence while preserving confidence that the evidence was not modified.
+
+NetDefender explores that workflow by detecting selected reconnaissance patterns in controlled network data and using cryptographic mechanisms to verify evidence integrity.
 
 ## Objectives
-- Design a segmented enterprise network with defined trust zones.
-- Enforce traffic policy with pfSense.
-- Detect selected suspicious activity with Snort.
-- Use Kali Linux and Nmap for controlled reconnaissance and security testing.
-- Capture and analyze traffic with Wireshark.
-- Demonstrate HTTP versus HTTPS/TLS behavior.
-- Demonstrate authenticated and encrypted VPN access.
-- Connect cryptographic mechanisms to practical network-security use cases.
-- Keep configuration, evidence, and documentation synchronized with the implemented MVP.
+
+- Build an isolated Kali Linux → Metasploitable security-testing lab.
+- Generate authorized reconnaissance traffic with Nmap.
+- Capture and inspect that traffic with Wireshark/tshark.
+- Build a Python-based network event parser and detection engine.
+- Detect selected port-scanning/reconnaissance behavior from structured traffic data.
+- Produce readable security findings and evidence.
+- Use SHA-256 and HMAC to demonstrate evidence integrity and authenticity concepts.
+- Add automated unit/integration tests.
+- Validate the project automatically with GitHub Actions.
+- Keep the project focused enough to be reproducible while still demonstrating real network-security engineering.
 
 ## MVP Scope
-- Isolated enterprise-style topology with untrusted, DMZ, internal, and VPN zones.
-- pfSense firewall rules between zones.
-- Snort IDS detection for selected activity.
-- Kali/Nmap reconnaissance and testing.
-- Wireshark packet captures for evidence.
-- TLS certificates and HTTPS using OpenSSL.
-- OpenVPN remote-access demonstration.
-- Focused demonstrations of hashing, HMAC, public-key cryptography, and digital signatures.
-- Repeatable end-to-end security scenarios with documented evidence.
 
-## Architecture / Workflow
-```text
-                         Untrusted Network
-                                |
-                           +----------+
-                           |  pfSense |
-                           | Firewall |
-                           +----+-----+
-                              / | \
-                             /  |  \
-                           DMZ Internal VPN
-                            |      |     |
-                       DMZ Server Internal VPN Client
-                                  Client
+### Lab
 
-                         +----------------+
-                         |    Snort IDS   |
-                         +--------+-------+
-                                  |
-                             Monitoring
-```
+- VMware Workstation
+- Kali Linux — controlled testing host
+- Metasploitable — controlled target
+- Isolated virtual networking
+- Nmap — reconnaissance generation
+- Wireshark/tshark — packet capture and inspection
+
+### NetDefender Software
+
+- **Python** security-analysis engine
+  - network-event models
+  - packet/event parsing
+  - reconnaissance detector
+  - finding/report generation
+  - cryptographic evidence utilities
+- **Optional TypeScript web interface** in a later phase if it improves the final demonstration without adding unnecessary infrastructure.
+- **pytest** automated tests
+- **GitHub Actions** CI
+
+The project may use more than one language when it provides a clear engineering benefit. Languages are not being added merely to increase the technology count.
+
+## Architecture
 
 ```text
-Build Network
-     ↓
-Run Controlled Test
-     ↓
-Capture Traffic
-     ↓
-Detect Activity
-     ↓
-Enforce Policy
-     ↓
-Review Evidence
+              CONTROLLED LAB
+
+       +-------------------+
+       |     Kali Linux    |
+       |  Nmap / Testing   |
+       +---------+---------+
+                 |
+                 | controlled traffic
+                 v
+       +-------------------+
+       |   Metasploitable  |
+       |      Target       |
+       +---------+---------+
+                 |
+                 | observed packets
+                 v
+       +-------------------+
+       | Wireshark / tshark|
+       | Capture + Evidence|
+       +---------+---------+
+                 |
+                 | pcap / structured events
+                 v
+       +-----------------------------+
+       |        NetDefender          |
+       |-----------------------------|
+       | Parser → Detector → Report  |
+       |             ↓               |
+       |       Crypto Integrity      |
+       +-------------+---------------+
+                     |
+                     v
+              Security Findings
+                     |
+                     v
+              GitHub Actions
 ```
 
-**Tool roles:** pfSense provides routing/firewall policy; Snort provides IDS detection; Kali/Nmap generates controlled security-test traffic; Wireshark provides packet-level evidence; OpenSSL supports certificates/TLS and cryptographic demonstrations; OpenVPN provides remote-access VPN functionality.
+The external tools are the **controlled lab environment**. The primary engineering deliverable is the NetDefender software and its tests/evidence.
+
+## Technology Choices
+
+| Area | Technology | Reason |
+|---|---|---|
+| Lab virtualization | VMware Workstation | Existing isolated VM environment |
+| Test host | Kali Linux | Controlled security testing |
+| Target | Metasploitable | Intentionally vulnerable lab target |
+| Reconnaissance | Nmap | Repeatable network discovery/scanning |
+| Packet analysis | Wireshark / tshark | Observable packet-level evidence |
+| Core application | Python | Strong networking/data-processing ecosystem and easy testing |
+| Optional UI | TypeScript | Can provide a polished browser-facing report without changing the core engine |
+| Testing | pytest | Repeatable automated validation |
+| Cryptography | Python standard library / approved crypto libraries as needed | SHA-256/HMAC evidence integrity demonstrations |
+| CI | GitHub Actions | Automated project verification |
+| Version control | Git / GitHub | Source, evidence, documentation, and CI history |
 
 ## Phase Plan
 
 | Phase | Focus | Status |
 |---|---|---|
-| 1 | Isolated VirtualBox topology and connectivity | In progress |
-| 2 | pfSense firewall policy and segmentation | Planned |
-| 3 | DMZ services and controlled targets | Planned |
-| 4 | Snort IDS and selected detection rules | Planned |
-| 5 | Kali/Nmap testing and Wireshark evidence | Planned |
-| 6 | TLS/HTTPS and certificate demonstration | Planned |
-| 7 | OpenVPN remote access | Planned |
-| 8 | Focused cryptographic demonstrations | Planned |
-| 9 | Integrated scenarios, validation, and evidence | Planned |
-| 10 | Final documentation, report, and presentation | Planned |
-
-## Tech Stack
-| Area | Technology |
-|---|---|
-| Firewall / Routing | pfSense |
-| IDS/IPS | Snort |
-| Testing Platform | Kali Linux |
-| Reconnaissance | Nmap |
-| Traffic Analysis | Wireshark |
-| TLS / Certificates | OpenSSL |
-| VPN | OpenVPN |
-| Cryptographic Tools | OpenSSL, GPG |
-| Virtualization | Oracle VirtualBox |
-| Documentation / Configuration | Markdown, configuration files |
-| Version Control | Git / GitHub |
+| 1 | Isolated lab + software foundation | **In progress** |
+| 2 | Reconnaissance data collection | Planned |
+| 3 | Traffic parsing and event normalization | Planned |
+| 4 | Detection engine and findings | Planned |
+| 5 | Cryptographic evidence integrity | Planned |
+| 6 | Security report / optional TypeScript UI | Planned |
+| 7 | Testing, CI, and validation | Planned |
+| 8 | Final integrated scenarios and evidence | Planned |
+| 9 | Final report and presentation | Planned |
 
 ## Project Structure
+
 ```text
 NetDefender/
-├── topology/
-│   ├── README.md
-│   └── ip-plan.md
-├── firewall/
-├── ids/
-├── vpn/
-├── crypto/
-├── attacks/
-├── captures/
-├── evidence/
+├── netdefender/
+│   ├── __init__.py
+│   ├── analyzer.py
+│   ├── detectors.py
+│   ├── crypto.py
+│   └── models.py
+├── tests/
+├── data/
+│   └── samples/
 ├── docs/
 │   ├── architecture.md
-│   └── setup.md
-└── README.md
+│   ├── setup.md
+│   └── evidence.md
+├── figures/
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+├── README.md
+├── pyproject.toml
+└── requirements.txt
 ```
 
-## Security Concepts
-- Symmetric and public-key cryptography
-- Hashing and HMAC
-- Digital signatures
-- PKI and certificates
-- TLS/HTTPS
-- Network segmentation
-- Firewalls
-- IDS/IPS
-- VPNs
-- Defense in depth
-- Least privilege
-- Network security testing
+## Security Concepts Demonstrated
 
-## Expected Demonstration
-Controlled reconnaissance will generate traffic that can be observed in Wireshark and detected by Snort while pfSense enforces the defined network policy. A separate TLS/HTTPS demonstration will show how encryption changes what can be observed in captured traffic. VPN and cryptographic demonstrations will connect authenticated remote access and cryptographic mechanisms to practical network-security use cases.
+- Network reconnaissance and attack-surface discovery
+- TCP/UDP behavior
+- Packet-level traffic analysis
+- Detection logic and security events
+- Network-security monitoring
+- Hashing with SHA-256
+- HMAC and message authenticity
+- Evidence integrity
+- Repeatable security testing
+- Defense-in-depth concepts
+- Automated security validation through CI
 
-The final MVP will favor a small number of repeatable scenarios with clear evidence over a large number of loosely connected features.
+## Final Demonstration
 
-## Security Scope and Limitations
-NetDefender is a local, controlled security laboratory. Testing is limited to the virtual machines and networks created for the project. Kali/Nmap traffic must not target university networks, public IP addresses, third-party systems, or unrelated devices.
+The intended final scenario is:
 
-The MVP is not intended to represent a complete enterprise SOC, production firewall deployment, or production incident-response platform. Configuration choices will be documented as lab constraints rather than presented as universal production guidance.
+1. Kali performs an authorized Nmap scan against Metasploitable.
+2. Traffic is captured in the isolated lab.
+3. NetDefender parses the captured/structured traffic.
+4. The detector identifies the reconnaissance pattern.
+5. NetDefender creates a finding containing evidence and metadata.
+6. A SHA-256 digest and HMAC are generated for the evidence.
+7. The evidence is deliberately checked for integrity.
+8. NetDefender produces a readable security report.
+9. GitHub Actions runs the automated tests and verifies the project.
 
-## Final MVP Status
-The project is currently in **Phase 1: topology and connectivity**. The repository currently contains the project plan and Phase 1 documentation; implementation evidence will be added as each phase is completed.
+No result will be presented as real-world attack detection capability beyond the controlled scenarios actually tested.
 
-The final MVP status will be updated throughout implementation. A phase will not be marked complete until its configuration has been implemented, tested, and documented with reproducible evidence.
+## Security Scope
 
-## Out of Scope
-- Internet-facing deployment
-- Large enterprise/SOC infrastructure
-- Full SIEM implementation
-- Internet-wide scanning
-- Testing third-party networks
-- Fully automated incident response
-- Large-scale wireless deployment
-- Generic security scoring
+All security testing must remain inside the NetDefender virtual lab. Kali/Nmap traffic must target only the user's Metasploitable VM or other explicitly authorized NetDefender lab systems.
 
-## Future Enhancements
-- Additional network zones and VLANs
-- More Snort rules
-- Centralized logging
-- Additional VPN and TLS scenarios
-- Controlled MITM/replay demonstrations
-- IPsec demonstrations
-- Expanded cryptographic key-management workflows
+Do not scan university networks, public IP addresses, third-party systems, or unrelated host devices.
 
-## Verification
-Phase-specific verification commands, screenshots, packet captures, firewall evidence, and IDS alerts will be documented as the implementation progresses. Final verification will use repeatable end-to-end scenarios across the completed MVP.
+## Limitations
+
+- The MVP focuses on selected reconnaissance patterns rather than all network attacks.
+- Detection quality depends on the packet/event data supplied to the analyzer.
+- The virtual lab does not represent a production enterprise network.
+- Evidence integrity mechanisms demonstrate cryptographic concepts; they do not by themselves establish legal chain of custody.
+- Metasploitable is intentionally vulnerable and should remain isolated.
 
 ## Documentation
+
 - [Architecture](docs/architecture.md)
 - [Setup](docs/setup.md)
-- [Topology](topology/README.md)
-- [IP Plan](topology/ip-plan.md)
+- [Evidence](docs/evidence.md)
