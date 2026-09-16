@@ -3,148 +3,102 @@
 
 ## Overview
 
-NetDefender is a controlled network-security lab and software project for **ISCI 6101: Network Security Engineering & Cryptography**. The project combines a small Kali/Metasploitable virtual lab with a purpose-built security analysis application.
+NetDefender is a controlled network-security lab and software project for **ISCI 6101: Network Security Engineering & Cryptography**. It combines a small Kali/Metasploitable virtual lab with a purpose-built security-analysis application.
 
-The goal is to make network-security concepts observable through code instead of building a large collection of unrelated enterprise products.
+The goal is to make network-security and cryptography concepts observable through code without turning the project into a collection of unrelated enterprise products.
 
-NetDefender is intentionally **not a monolithic enterprise appliance**. The virtual machines generate controlled traffic, while NetDefender performs the coding-heavy analysis, detection, evidence integrity, and reporting work.
+NetDefender is **not a monolithic appliance**. The virtual machines generate controlled traffic; NetDefender performs the primary coding, parsing, detection, cryptographic evidence, and reporting work.
 
 ## Core Flow
 
 ```text
-Build Isolated Lab
-       ↓
-Controlled Reconnaissance
-       ↓
-Capture Network Traffic
-       ↓
-NetDefender Analysis
-       ↓
-Detect Suspicious Activity
-       ↓
-Cryptographically Protect Evidence
-       ↓
-Review Detection Report
-       ↓
-Automated CI Validation
+Kali / Nmap
+    ↓
+Metasploitable
+    ↓
+Wireshark / tshark
+    ↓
+Network events
+    ↓
+NetDefender Parser
+    ↓
+Detection Engine
+    ↓
+Findings + Evidence
+    ↓
+SHA-256 / HMAC
+    ↓
+JSON + HTML Report
+    ↓
+GitHub Actions
 ```
 
 ## Problem
 
-Network reconnaissance can generate observable traffic before an attack reaches an application or host. A security analyst needs to turn that low-level network activity into understandable evidence while preserving confidence that the evidence was not modified.
-
-NetDefender explores that workflow by detecting selected reconnaissance patterns in controlled network data and using cryptographic mechanisms to verify evidence integrity.
+Network reconnaissance produces observable traffic, but raw packets are difficult to interpret as a security finding. NetDefender turns selected network observations into explainable detections and then demonstrates how cryptographic integrity mechanisms can protect the resulting evidence.
 
 ## Objectives
 
-- Build an isolated Kali Linux → Metasploitable security-testing lab.
-- Generate authorized reconnaissance traffic with Nmap.
-- Capture and inspect that traffic with Wireshark/tshark.
-- Build a Python-based network event parser and detection engine.
-- Detect selected port-scanning/reconnaissance behavior from structured traffic data.
-- Produce readable security findings and evidence.
-- Use SHA-256 and HMAC to demonstrate evidence integrity and authenticity concepts.
-- Add automated unit/integration tests.
-- Validate the project automatically with GitHub Actions.
-- Keep the project focused enough to be reproducible while still demonstrating real network-security engineering.
+- Build a controlled Kali Linux → Metasploitable lab.
+- Generate authorized TCP and UDP reconnaissance traffic with Nmap.
+- Capture and inspect traffic with Wireshark/tshark.
+- Parse structured network observations into a stable data model.
+- Detect selected reconnaissance patterns with deterministic rules.
+- Produce explainable security findings.
+- Generate SHA-256 and HMAC-SHA256 evidence metadata.
+- Verify evidence integrity after controlled modification.
+- Generate JSON and dependency-free HTML reports.
+- Maintain automated tests and GitHub Actions CI.
 
 ## MVP Scope
 
-### Lab
+### Controlled Lab
 
 - VMware Workstation
-- Kali Linux — controlled testing host
-- Metasploitable — controlled target
+- Kali Linux — authorized testing host
+- Metasploitable — authorized vulnerable target
 - Isolated virtual networking
-- Nmap — reconnaissance generation
+- Nmap — reconnaissance traffic generation
 - Wireshark/tshark — packet capture and inspection
 
 ### NetDefender Software
 
-- **Python** security-analysis engine
-  - network-event models
-  - packet/event parsing
-  - reconnaissance detector
-  - finding/report generation
-  - cryptographic evidence utilities
-- **Optional TypeScript web interface** in a later phase if it improves the final demonstration without adding unnecessary infrastructure.
-- **pytest** automated tests
-- **GitHub Actions** CI
+- Python network-event models
+- JSON/CSV parser
+- TCP SYN reconnaissance detector
+- UDP reconnaissance detector
+- Finding/report generation
+- SHA-256 evidence hashing
+- HMAC-SHA256 integrity/authenticity demonstration
+- HTML security report generator
+- pytest automated tests
+- GitHub Actions CI
 
-The project may use more than one language when it provides a clear engineering benefit. Languages are not being added merely to increase the technology count.
+A TypeScript interface remains an optional future enhancement. It is not being added merely to increase the technology count.
 
 ## Architecture
 
 ```text
-              CONTROLLED LAB
-
-       +-------------------+
-       |     Kali Linux    |
-       |  Nmap / Testing   |
-       +---------+---------+
-                 |
-                 | controlled traffic
-                 v
-       +-------------------+
-       |   Metasploitable  |
-       |      Target       |
-       +---------+---------+
-                 |
-                 | observed packets
-                 v
-       +-------------------+
-       | Wireshark / tshark|
-       | Capture + Evidence|
-       +---------+---------+
-                 |
-                 | pcap / structured events
-                 v
-       +-----------------------------+
-       |        NetDefender          |
-       |-----------------------------|
-       | Parser → Detector → Report  |
-       |             ↓               |
-       |       Crypto Integrity      |
-       +-------------+---------------+
-                     |
-                     v
-              Security Findings
-                     |
-                     v
-              GitHub Actions
+┌──────────────────── CONTROLLED LAB ────────────────────┐
+│                                                        │
+│   Kali Linux ── Nmap ──> Metasploitable               │
+│       │                         │                      │
+│       └────── Wireshark/tshark capture ───────────────┘
+└───────────────────────────┬────────────────────────────┘
+                            │ structured events
+                            v
+┌────────────────────────────────────────────────────────┐
+│                    NETDEFENDER                         │
+│                                                        │
+│ Parser → Normalizer → Detection Engine → Findings      │
+│                                      ↓                 │
+│                              SHA-256 + HMAC             │
+│                                      ↓                 │
+│                              JSON / HTML                │
+└───────────────────────────┬────────────────────────────┘
+                            v
+                    GitHub Actions CI
 ```
-
-The external tools are the **controlled lab environment**. The primary engineering deliverable is the NetDefender software and its tests/evidence.
-
-## Technology Choices
-
-| Area | Technology | Reason |
-|---|---|---|
-| Lab virtualization | VMware Workstation | Existing isolated VM environment |
-| Test host | Kali Linux | Controlled security testing |
-| Target | Metasploitable | Intentionally vulnerable lab target |
-| Reconnaissance | Nmap | Repeatable network discovery/scanning |
-| Packet analysis | Wireshark / tshark | Observable packet-level evidence |
-| Core application | Python | Strong networking/data-processing ecosystem and easy testing |
-| Optional UI | TypeScript | Can provide a polished browser-facing report without changing the core engine |
-| Testing | pytest | Repeatable automated validation |
-| Cryptography | Python standard library / approved crypto libraries as needed | SHA-256/HMAC evidence integrity demonstrations |
-| CI | GitHub Actions | Automated project verification |
-| Version control | Git / GitHub | Source, evidence, documentation, and CI history |
-
-## Phase Plan
-
-| Phase | Focus | Status |
-|---|---|---|
-| 1 | Isolated lab + software foundation | **In progress** |
-| 2 | Reconnaissance data collection | Planned |
-| 3 | Traffic parsing and event normalization | Planned |
-| 4 | Detection engine and findings | Planned |
-| 5 | Cryptographic evidence integrity | Planned |
-| 6 | Security report / optional TypeScript UI | Planned |
-| 7 | Testing, CI, and validation | Planned |
-| 8 | Final integrated scenarios and evidence | Planned |
-| 9 | Final report and presentation | Planned |
 
 ## Project Structure
 
@@ -153,71 +107,120 @@ NetDefender/
 ├── netdefender/
 │   ├── __init__.py
 │   ├── analyzer.py
-│   ├── detectors.py
+│   ├── cli.py
 │   ├── crypto.py
-│   └── models.py
+│   ├── detectors.py
+│   ├── evidence.py
+│   ├── models.py
+│   ├── parser.py
+│   └── report.py
 ├── tests/
+│   └── test_netdefender.py
 ├── data/
 │   └── samples/
+│       └── syn-scan.json
 ├── docs/
 │   ├── architecture.md
 │   ├── setup.md
 │   └── evidence.md
+├── topology/
+│   └── ip-plan.md
+├── evidence/
 ├── figures/
-├── .github/
-│   └── workflows/
-│       └── tests.yml
+├── .github/workflows/tests.yml
 ├── README.md
 ├── pyproject.toml
 └── requirements.txt
 ```
 
+## Technology Choices
+
+| Area | Technology | Purpose |
+|---|---|---|
+| Core application | Python 3.11+ | Parsing, detection, crypto, reporting |
+| Testing | pytest | Automated validation |
+| Lab | VMware Workstation | Isolated virtual machines |
+| Test host | Kali Linux | Controlled security testing |
+| Target | Metasploitable | Controlled vulnerable target |
+| Reconnaissance | Nmap | Repeatable TCP/UDP scans |
+| Traffic evidence | Wireshark / tshark | Packet observation and export |
+| Integrity | SHA-256 + HMAC-SHA256 | Evidence integrity/authenticity concepts |
+| CI | GitHub Actions | Repeatable automated checks |
+
+## Phase Plan
+
+The phases are intentionally **coding-first**. This lets the software be developed and tested while away from the laptop. When the laptop is available, the remaining work is primarily connecting the already-built software to real lab traffic and collecting evidence.
+
+| Phase | Focus | Can be done away from laptop? | Status |
+|---|---|---:|---|
+| 1 | Architecture + data model | Yes | **Complete** |
+| 2 | Parser + validation | Yes | **Implemented** |
+| 3 | TCP/UDP detection engine | Yes | **Implemented** |
+| 4 | Cryptographic evidence | Yes | **Implemented** |
+| 5 | Security reporting | Yes | **Implemented** |
+| 6 | Automated testing + CI | Yes | **Implemented / expanding** |
+| 7 | VMware lab configuration | No | Pending |
+| 8 | Real Nmap + Wireshark collection | No | Pending |
+| 9 | End-to-end validation + evidence | Partly | Pending |
+| 10 | Final report + presentation | Yes | Pending |
+
+## Current Software Capabilities
+
+The code can already accept normalized JSON or CSV network events, run the reconnaissance detection engine, emit structured findings, and generate an HTML report. The repository also contains a controlled synthetic scan sample for deterministic development/testing.
+
+Example command once the repository is cloned:
+
+```bash
+python -m netdefender.cli data/samples/syn-scan.json --html report.html
+```
+
 ## Security Concepts Demonstrated
 
 - Network reconnaissance and attack-surface discovery
-- TCP/UDP behavior
-- Packet-level traffic analysis
-- Detection logic and security events
-- Network-security monitoring
-- Hashing with SHA-256
-- HMAC and message authenticity
-- Evidence integrity
+- TCP SYN scanning behavior
+- UDP scanning behavior
+- Packet/event normalization
+- Explainable network detection
+- SHA-256 hashing
+- HMAC-SHA256
+- Evidence integrity verification
 - Repeatable security testing
-- Defense-in-depth concepts
-- Automated security validation through CI
+- Automated CI validation
 
 ## Final Demonstration
 
 The intended final scenario is:
 
-1. Kali performs an authorized Nmap scan against Metasploitable.
-2. Traffic is captured in the isolated lab.
-3. NetDefender parses the captured/structured traffic.
-4. The detector identifies the reconnaissance pattern.
-5. NetDefender creates a finding containing evidence and metadata.
-6. A SHA-256 digest and HMAC are generated for the evidence.
-7. The evidence is deliberately checked for integrity.
-8. NetDefender produces a readable security report.
-9. GitHub Actions runs the automated tests and verifies the project.
+1. Kali performs an authorized Nmap scan against the user's Metasploitable VM.
+2. Wireshark/tshark captures the resulting traffic.
+3. Relevant traffic is exported into NetDefender's event format.
+4. NetDefender parses and normalizes the events.
+5. Detection rules identify the reconnaissance pattern.
+6. A security finding is generated with supporting evidence.
+7. SHA-256 and HMAC metadata are generated.
+8. The evidence is deliberately modified and verification demonstrates the integrity check failing.
+9. A readable JSON/HTML report is produced.
+10. GitHub Actions validates the code and tests.
 
-No result will be presented as real-world attack detection capability beyond the controlled scenarios actually tested.
+No result will be presented as general-purpose real-world IDS capability; conclusions will be limited to the controlled scenarios actually tested.
 
 ## Security Scope
 
-All security testing must remain inside the NetDefender virtual lab. Kali/Nmap traffic must target only the user's Metasploitable VM or other explicitly authorized NetDefender lab systems.
+All security testing must remain inside the NetDefender virtual lab. Kali/Nmap traffic must target only the user's Metasploitable VM or another explicitly authorized NetDefender lab system.
 
 Do not scan university networks, public IP addresses, third-party systems, or unrelated host devices.
 
 ## Limitations
 
-- The MVP focuses on selected reconnaissance patterns rather than all network attacks.
-- Detection quality depends on the packet/event data supplied to the analyzer.
-- The virtual lab does not represent a production enterprise network.
-- Evidence integrity mechanisms demonstrate cryptographic concepts; they do not by themselves establish legal chain of custody.
-- Metasploitable is intentionally vulnerable and should remain isolated.
+- Detection focuses on selected reconnaissance patterns rather than all attacks.
+- Detection quality depends on the event fields supplied to the analyzer.
+- The virtual lab is not a production enterprise network.
+- SHA-256/HMAC demonstrations do not by themselves establish legal chain of custody.
+- Metasploitable is intentionally vulnerable and must remain isolated.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Setup](docs/setup.md)
 - [Evidence](docs/evidence.md)
+- [IP Plan](topology/ip-plan.md)
