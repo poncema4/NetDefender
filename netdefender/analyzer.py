@@ -1,16 +1,29 @@
-"""Top-level analysis entry points for NetDefender."""
+"""Analysis pipeline for NetDefender."""
 
+from __future__ import annotations
+
+import json
 from collections.abc import Iterable
 
-from .models import NetworkEvent
+from .detectors import detect
+from .models import Finding, NetworkEvent
 
 
-def analyze(events: Iterable[NetworkEvent]) -> list[NetworkEvent]:
-    """Return normalized events for downstream detection.
+def analyze(events: Iterable[NetworkEvent]) -> list[Finding]:
+    """Run the detection engine over normalized network events."""
+    return detect(list(events))
 
-    Detection and parsing are intentionally added in later phases. The
-    Phase 1 implementation establishes a small, testable application
-    boundary without pretending to detect attacks before evidence exists.
-    """
 
-    return list(events)
+def findings_to_json(findings: Iterable[Finding]) -> str:
+    """Serialize findings into stable, human-readable JSON."""
+    return json.dumps([
+        {
+            "rule_id": f.rule_id,
+            "title": f.title,
+            "severity": f.severity,
+            "source_ip": f.source_ip,
+            "destination_ip": f.destination_ip,
+            "evidence": f.evidence,
+        }
+        for f in findings
+    ], indent=2, sort_keys=True)
