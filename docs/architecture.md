@@ -1,88 +1,146 @@
 # NetDefender Architecture
 
-## Purpose
+## 1. Purpose
 
-NetDefender is a controlled enterprise-network security lab. The architecture is designed to demonstrate how segmentation, firewall policy, intrusion detection, VPN access, TLS, and cryptographic controls work together rather than as isolated technologies.
+NetDefender is a controlled network-security laboratory backed by a purpose-built analysis application. It is designed for ISCI 6101: Network Security Engineering & Cryptography.
 
-## MVP Architecture
+The architecture deliberately keeps the number of external systems small. VMware, Kali, and Metasploitable provide the isolated environment; Nmap and Wireshark/tshark generate and expose network evidence; NetDefender provides the primary coding and analysis work.
 
-```text
-                         Untrusted Network
-                                |
-                                |
-                           +----------+
-                           |  pfSense |
-                           | Firewall |
-                           +----+-----+
-                              / | \
-                             /  |  \
-                           DMZ Internal VPN
-                            |      |     |
-                            |      |     |
-                       DMZ Server Internal VPN Client
-                                  Client
-
-                         +----------------+
-                         |    Snort IDS   |
-                         +--------+-------+
-                                  |
-                             Monitoring
-```
-
-The final implementation may place Snort at a more precise observation point depending on the VirtualBox interface design. The diagram will be updated as the lab is implemented and verified.
-
-## Security Flow
+## 2. High-Level Architecture
 
 ```text
-Build Network
-     ↓
-Run Controlled Test
-     ↓
-Capture Traffic
-     ↓
-Detect Activity
-     ↓
-Enforce Policy
-     ↓
-Review Evidence
+┌─────────────────────────────────────────────────────────────┐
+│                    ISOLATED VM LAB                          │
+│                                                             │
+│   ┌───────────────┐       controlled       ┌──────────────┐ │
+│   │   Kali Linux  │ ─────── Nmap ─────────>│Metasploitable│ │
+│   │ Test / Source │       traffic           │    Target    │ │
+│   └───────────────┘                         └──────┬───────┘ │
+│                                                    │         │
+│                         packet capture             │         │
+│                              ┌─────────────────────┘         │
+│                              v                               │
+│                       Wireshark / tshark                     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               │ pcap / structured events
+                               v
+┌─────────────────────────────────────────────────────────────┐
+│                       NETDEFENDER                           │
+│                                                             │
+│  Input → Parser → Normalizer → Detector → Finding Report   │
+│                              │                              │
+│                              v                              │
+│                    Evidence Integrity                       │
+│                     SHA-256 + HMAC                          │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               v
+                       Tests + CI Validation
+                         GitHub Actions
 ```
 
-## Trust Zones
+## 3. Core Components
 
-### Untrusted
+### 3.1 Lab Environment
 
-The controlled testing side of the lab. Kali Linux will generate authorized reconnaissance and security-test traffic.
+VMware provides the virtualization layer. Kali is the authorized test source and Metasploitable is the intentionally vulnerable target. The virtual network must be isolated so generated traffic cannot accidentally reach unrelated systems.
 
-### DMZ
+### 3.2 Traffic Collection
 
-The simulated enterprise's externally reachable service zone. Services placed here will be intentionally limited so firewall and IDS behavior can be demonstrated clearly.
+Nmap is used to create repeatable reconnaissance traffic. Wireshark or tshark is used to inspect and capture that traffic. Packet captures and derived structured data become controlled input to NetDefender.
 
-### Internal
+### 3.3 Event Parser
 
-The trusted enterprise zone. Access from less-trusted zones will be restricted by explicit firewall policy.
+The parser converts raw or structured network observations into a consistent internal representation. The first implementation will prioritize useful fields such as:
 
-### VPN
+- timestamp
+- source IP
+- destination IP
+- source port
+- destination port
+- transport protocol
+- TCP flags when available
+- packet/event type
 
-The remote-access zone used to demonstrate authenticated, encrypted access to selected internal resources through OpenVPN.
+The parser should reject malformed input cleanly rather than silently creating misleading events.
 
-## Phase Plan
+### 3.4 Detection Engine
 
-1. **Topology and connectivity** — create the isolated VirtualBox network and verify interfaces and reachability.
-2. **Firewall and segmentation** — configure pfSense interfaces and explicit inter-zone policy.
-3. **DMZ services** — deploy a small controlled service target for testing.
-4. **IDS** — deploy Snort and validate selected detection rules.
-5. **Reconnaissance and packet evidence** — use Kali/Nmap and Wireshark to generate and document controlled traffic.
-6. **TLS/HTTPS** — create certificates with OpenSSL and compare HTTP and HTTPS captures.
-7. **VPN** — configure OpenVPN and demonstrate restricted remote access.
-8. **Cryptography** — demonstrate hashing, HMAC, public-key cryptography, and digital signatures in focused scenarios.
-9. **Integration and validation** — run repeatable end-to-end scenarios and collect evidence.
-10. **Final documentation** — synchronize README, architecture/setup/testing documentation, evidence, report, and presentation with the implemented MVP.
+The first detector will focus on reconnaissance/port-scanning behavior. Detection logic should be deterministic and explainable.
 
-## Design Principles
+A finding should identify:
 
-- Keep the environment isolated and controlled.
-- Use least-privilege firewall rules.
-- Prefer small, repeatable demonstrations over large infrastructure.
-- Keep security evidence tied to an observable test result.
-- Do not claim a control works without validating it in the lab.
-- Keep configuration and documentation synchronized with the implementation.
+- what was detected
+- source and target
+- relevant ports/protocols
+- evidence supporting the detection
+- detection rule used
+- timestamp/window where applicable
+- confidence or severity only when the value has a documented meaning
+
+The project will avoid pretending that one heuristic can detect every form of malicious traffic.
+
+### 3.5 Cryptographic Evidence
+
+NetDefender will use SHA-256 to create a deterministic digest of evidence and HMAC to demonstrate integrity/authenticity when a shared secret is available.
+
+The application will support an explicit verification operation so a captured evidence file can be checked before and after controlled modification.
+
+Cryptography is part of the design rather than a separate demo pasted onto the project: the detector produces evidence, and the crypto layer protects the integrity of that evidence.
+
+### 3.6 Reporting
+
+The MVP will generate a readable report containing detections, supporting network evidence, and integrity metadata. A lightweight TypeScript UI may be added later if it materially improves presentation; it is not required for the core engine.
+
+## 4. Data Flow
+
+```text
+Nmap scan
+   ↓
+Captured packets / exported events
+   ↓
+Parser
+   ↓
+Normalized NetworkEvent objects
+   ↓
+Detection rules
+   ↓
+Finding objects
+   ↓
+Evidence serialization
+   ↓
+SHA-256 / HMAC
+   ↓
+Report
+```
+
+## 5. Design Decisions
+
+### Why Python?
+
+Python is the core implementation language because it keeps packet/data parsing, detection logic, cryptography, and automated testing cohesive. The goal is substantial engineering rather than a collection of languages.
+
+### Why allow TypeScript?
+
+A small TypeScript frontend can be introduced if the final report/dashboard benefits from a browser interface. It remains optional so the project does not become a frontend-development project instead of a network-security project.
+
+### Why not pfSense/Snort/OpenVPN for the MVP?
+
+Those are valuable enterprise technologies, but adding them all would shift the project toward infrastructure configuration and create a much larger dependency footprint. NetDefender instead focuses on a smaller number of controls that can be implemented, tested, explained, and demonstrated in depth.
+
+## 6. Phase Plan
+
+1. **Isolated lab + software foundation** — configure Kali/Metasploitable networking and establish the Python project structure and CI baseline.
+2. **Reconnaissance collection** — run controlled Nmap scenarios and save sanitized evidence.
+3. **Traffic parsing** — implement event models, parsers, validation, and normalization.
+4. **Detection engine** — implement and test reconnaissance detection rules.
+5. **Cryptographic evidence** — add SHA-256/HMAC generation and verification.
+6. **Reporting/UI** — create a useful security report and optionally a small TypeScript interface.
+7. **Testing + CI** — expand automated tests and enforce repeatable verification through GitHub Actions.
+8. **Integration** — execute end-to-end lab scenarios and collect final evidence.
+9. **Submission** — finalize documentation, report, presentation, and reproducibility instructions.
+
+## 7. Security Boundary
+
+All test traffic must remain inside the controlled NetDefender lab. The target IPs used by Nmap must be verified as the user's own Metasploitable VM before scanning.
