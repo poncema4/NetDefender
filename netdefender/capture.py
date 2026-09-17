@@ -9,16 +9,24 @@ from pathlib import Path
 
 from .parser import parse_csv
 
+# Use protocol numbers instead of Wireshark's display-column field. The latter
+# can be empty depending on TShark's protocol-column rendering/version.
 FIELDS = (
     "frame.time_epoch",
     "ip.src",
     "ip.dst",
-    "_ws.col.Protocol",
+    "ip.proto",
     "tcp.srcport",
     "tcp.dstport",
     "tcp.flags",
     "frame.len",
 )
+
+_IP_PROTOCOLS = {
+    "1": "ICMP",
+    "6": "TCP",
+    "17": "UDP",
+}
 
 _TCP_FLAG_BITS = (
     (0x001, "FIN"),
@@ -31,6 +39,22 @@ _TCP_FLAG_BITS = (
     (0x080, "CWR"),
     (0x100, "NS"),
 )
+
+
+def normalize_protocol(value: str | None) -> str:
+    """Normalize TShark's IP protocol number into an application protocol name."""
+    if not value:
+        return "UNKNOWN"
+
+    normalized = value.strip().upper()
+    if normalized in _IP_PROTOCOLS:
+        return _IP_PROTOCOLS[normalized]
+
+    # Keep compatibility with callers/tests that already provide protocol names.
+    if normalized in _IP_PROTOCOLS.values():
+        return normalized
+
+    return normalized
 
 
 def normalize_tcp_flags(value: str | None) -> str:
@@ -87,7 +111,7 @@ def pcap_to_csv(pcap: Path) -> str:
                 "timestamp": row.get("frame.time_epoch", ""),
                 "source_ip": row.get("ip.src", ""),
                 "destination_ip": row.get("ip.dst", ""),
-                "protocol": row.get("_ws.col.Protocol", "UNKNOWN"),
+                "protocol": normalize_protocol(row.get("ip.proto", "")),
                 "source_port": row.get("tcp.srcport", ""),
                 "destination_port": row.get("tcp.dstport", ""),
                 "tcp_flags": normalize_tcp_flags(row.get("tcp.flags", "")),
