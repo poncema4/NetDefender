@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 from netdefender.analyzer import analyze
-from netdefender.capture import normalize_protocol, normalize_tcp_flags
+from netdefender.capture import normalize_protocol, normalize_tcp_flags, pcap_to_csv
 from netdefender.crypto import hmac_sha256_hex, sha256_hex, verify_hmac
 from netdefender.evidence import build_manifest, verify_manifest
 from netdefender.models import NetworkEvent
@@ -46,6 +47,8 @@ def test_tshark_protocol_numbers_are_normalized():
     assert normalize_protocol("17") == "UDP"
     assert normalize_protocol("1") == "ICMP"
     assert normalize_protocol("TCP") == "TCP"
+    assert normalize_protocol("1,17") == "UDP"
+    assert normalize_protocol("6,17") == "UDP"
     assert normalize_protocol("") == "UNKNOWN"
 
 
@@ -55,6 +58,27 @@ def test_tshark_numeric_tcp_flags_are_normalized():
     assert normalize_tcp_flags("0x001") == "FIN"
     assert normalize_tcp_flags("SYN") == "SYN"
     assert normalize_tcp_flags("") == ""
+
+
+def test_tshark_fields_with_embedded_commas_keep_their_columns(monkeypatch):
+    tshark_output = (
+        "frame.time_epoch\tip.src\tip.dst\tip.proto\ttcp.srcport\ttcp.dstport\t"
+        "tcp.flags\tframe.len\n"
+        "1000.0\t172.16.198.128,172.16.198.129\t172.16.198.129,172.16.198.128\t"
+        "1,17\t\t\t\t100\n"
+        "1000.1\t172.16.198.129\t172.16.198.128\t17\t\t20\t\t60\n"
+    )
+    monkeypatch.setattr(
+        "netdefender.capture.subprocess.run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=tshark_output),
+    )
+
+    csv_text = pcap_to_csv(__import__("pathlib").Path("udp-test.pcapng"))
+    rows = csv_text.splitlines()
+    assert rows[0] == "timestamp,source_ip,destination_ip,protocol,source_port,destination_port,tcp_flags,packet_length"
+    assert "UDP" in rows[1]
+    assert "172.16.198.128,172.16.198.129" in rows[1]
+    assert rows[2].endswith(",UDP,,,20,,60")
 
 
 def test_json_parser():
