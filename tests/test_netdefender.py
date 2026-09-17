@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from netdefender.analyzer import analyze
-from netdefender.capture import normalize_tcp_flags
+from netdefender.capture import normalize_protocol, normalize_tcp_flags
 from netdefender.crypto import hmac_sha256_hex, sha256_hex, verify_hmac
 from netdefender.evidence import build_manifest, verify_manifest
 from netdefender.models import NetworkEvent
@@ -39,6 +39,14 @@ def test_udp_scan_is_detected():
     findings = analyze([event(port, protocol="UDP", flags=None) for port in range(30, 38)])
     assert len(findings) == 1
     assert findings[0].rule_id == "NET-RECON-002"
+
+
+def test_tshark_protocol_numbers_are_normalized():
+    assert normalize_protocol("6") == "TCP"
+    assert normalize_protocol("17") == "UDP"
+    assert normalize_protocol("1") == "ICMP"
+    assert normalize_protocol("TCP") == "TCP"
+    assert normalize_protocol("") == "UNKNOWN"
 
 
 def test_tshark_numeric_tcp_flags_are_normalized():
