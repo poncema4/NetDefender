@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 from netdefender.analyzer import analyze
@@ -73,12 +74,12 @@ def test_tshark_fields_with_embedded_commas_keep_their_columns(monkeypatch):
         lambda *args, **kwargs: SimpleNamespace(stdout=tshark_output),
     )
 
-    csv_text = pcap_to_csv(__import__("pathlib").Path("udp-test.pcapng"))
+    csv_text = pcap_to_csv(Path("udp-test.pcapng"))
     rows = csv_text.splitlines()
     assert rows[0] == "timestamp,source_ip,destination_ip,protocol,source_port,destination_port,tcp_flags,packet_length"
     assert "UDP" in rows[1]
     assert "172.16.198.128,172.16.198.129" in rows[1]
-    assert rows[2].endswith(",UDP,,,20,,60")
+    assert rows[2].endswith(",UDP,,20,,60")
 
 
 def test_json_parser():
