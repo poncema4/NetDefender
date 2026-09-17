@@ -70,6 +70,13 @@ def normalize_tcp_flags(value: str | None) -> str:
     return ",".join(name for bit, name in _TCP_FLAG_BITS if flags & bit)
 
 
+def _normalize_ip(value: str | None) -> str:
+    """Normalize TShark IP fields that may contain comma-separated addresses."""
+    if not value:
+        return ""
+    return value.split(",")[-1].strip()
+
+
 def _transport_port(row: dict[str, str], tcp_key: str, udp_key: str) -> str:
     """Select the populated TCP or UDP transport port from a TShark row."""
     return row.get(tcp_key, "") or row.get(udp_key, "")
@@ -102,8 +109,8 @@ def pcap_to_csv(pcap: Path) -> str:
     for row in reader:
         writer.writerow({
             "timestamp": row.get("frame.time_epoch", ""),
-            "source_ip": row.get("ip.src", ""),
-            "destination_ip": row.get("ip.dst", ""),
+            "source_ip": _normalize_ip(row.get("ip.src", "")),
+            "destination_ip": _normalize_ip(row.get("ip.dst", "")),
             "protocol": normalize_protocol(row.get("ip.proto", "")),
             "source_port": _transport_port(row, "tcp.srcport", "udp.srcport"),
             "destination_port": _transport_port(row, "tcp.dstport", "udp.dstport"),
