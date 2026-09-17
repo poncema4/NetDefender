@@ -6,6 +6,7 @@ from netdefender.analyzer import analyze
 from netdefender.capture import (
     _transport_port,
     normalize_protocol,
+    _normalize_ip,
     normalize_tcp_flags,
     pcap_to_csv,
 )
@@ -64,6 +65,12 @@ def test_tshark_numeric_tcp_flags_are_normalized():
     assert normalize_tcp_flags("0x001") == "FIN"
     assert normalize_tcp_flags("SYN") == "SYN"
     assert normalize_tcp_flags("") == ""
+
+
+def test_tshark_comma_separated_ip_fields_use_final_address():
+    assert _normalize_ip("172.16.198.128,172.16.198.129") == "172.16.198.129"
+    assert _normalize_ip("172.16.198.128") == "172.16.198.128"
+    assert _normalize_ip("") == ""
 
 
 def test_transport_port_prefers_populated_protocol():
