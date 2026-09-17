@@ -16,32 +16,84 @@ FIELDS = (
     "_ws.col.Protocol",
     "tcp.srcport",
     "tcp.dstport",
-    "tcp.flags.str",
+    "tcp.flags",
     "frame.len",
 )
+
+_TCP_FLAG_BITS = (
+    (0x001, "FIN"),
+    (0x002, "SYN"),
+    (0x004, "RST"),
+    (0x008, "PSH"),
+    (0x010, "ACK"),
+    (0x020, "URG"),
+    (0x040, "ECE"),
+    (0x080, "CWR"),
+    (0x100, "NS"),
+)
+
+
+def normalize_tcp_flags(value: str | None) -> str:
+    """Normalize tshark's numeric TCP flag bitmask into stable flag names."""
+    if not value:
+        return ""
+
+    try:
+        flags = int(value, 0)
+    except ValueError:
+        # Keep compatibility with already-normalized/test fixture values.
+        return value
+
+    return ",".join(name for bit, name in _TCP_FLAG_BITS if flags & bit)
 
 
 def pcap_to_csv(pcap: Path) -> str:
     """Export useful packet fields from a PCAP using installed tshark."""
-    command = ["tshark", "-r", str(pcap), "-T", "fields", "-E", "header=y", "-E", "separator=,", "-E", "quote=d"]
+    command = [
+        "tshark",
+        "-r",
+        str(pcap),
+        "-T",
+        "fields",
+        "-E",
+        "header=y",
+        "-E",
+        "separator=,",
+        "-E",
+        "quote=d",
+    ]
     for field in FIELDS:
         command.extend(("-e", field))
     result = subprocess.run(command, check=True, capture_output=True, text=True)
     reader = csv.DictReader(io.StringIO(result.stdout))
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["timestamp", "source_ip", "destination_ip", "protocol", "source_port", "destination_port", "tcp_flags", "packet_length"])
+    writer = csv.DictWriter(
+        output,
+        fieldnames=[
+            "timestamp",
+            "source_ip",
+            "destination_ip",
+            "protocol",
+            "source_port",
+            "destination_port",
+            "tcp_flags",
+            "packet_length",
+        ],
+    )
     writer.writeheader()
     for row in reader:
-        writer.writerow({
-            "timestamp": row.get("frame.time_epoch", ""),
-            "source_ip": row.get("ip.src", ""),
-            "destination_ip": row.get("ip.dst", ""),
-            "protocol": row.get("_ws.col.Protocol", "UNKNOWN"),
-            "source_port": row.get("tcp.srcport", ""),
-            "destination_port": row.get("tcp.dstport", ""),
-            "tcp_flags": row.get("tcp.flags.str", ""),
-            "packet_length": row.get("frame.len", ""),
-        })
+        writer.writerow(
+            {
+                "timestamp": row.get("frame.time_epoch", ""),
+                "source_ip": row.get("ip.src", ""),
+                "destination_ip": row.get("ip.dst", ""),
+                "protocol": row.get("_ws.col.Protocol", "UNKNOWN"),
+                "source_port": row.get("tcp.srcport", ""),
+                "destination_port": row.get("tcp.dstport", ""),
+                "tcp_flags": normalize_tcp_flags(row.get("tcp.flags", "")),
+                "packet_length": row.get("frame.len", ""),
+            }
+        )
     return output.getvalue()
 
 
