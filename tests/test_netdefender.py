@@ -96,7 +96,9 @@ def test_tshark_fields_with_embedded_commas_keep_their_columns(monkeypatch):
     rows = csv_text.splitlines()
     assert rows[0] == "timestamp,source_ip,destination_ip,protocol,source_port,destination_port,tcp_flags,packet_length"
     assert "UDP" in rows[1]
-    assert "172.16.198.128,172.16.198.129" in rows[1]
+    assert "172.16.198.129" in rows[1]
+    assert "172.16.198.128" in rows[1]
+    assert "172.16.198.128,172.16.198.129" not in rows[1]
     assert rows[1].endswith(",UDP,53000,20,,100")
     assert rows[2].endswith(",UDP,53001,53,,60")
 
