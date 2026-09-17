@@ -81,7 +81,7 @@ def pcap_to_csv(pcap: Path) -> str:
         "tshark", "-r", str(pcap), "-T", "fields",
         "-E", "header=y",
         # Use tabs because IP fields can contain comma-separated values.
-        "-E", "separator=\\t",
+        "-E", "separator=\t",
         "-E", "quote=d",
     ]
     for field in FIELDS:
