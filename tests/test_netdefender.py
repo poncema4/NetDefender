@@ -3,7 +3,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from netdefender.analyzer import analyze
-from netdefender.capture import normalize_protocol, normalize_tcp_flags, pcap_to_csv
+from netdefender.capture import (
+    _transport_port,
+    normalize_protocol,
+    normalize_tcp_flags,
+    pcap_to_csv,
+)
 from netdefender.crypto import hmac_sha256_hex, sha256_hex, verify_hmac
 from netdefender.evidence import build_manifest, verify_manifest
 from netdefender.models import NetworkEvent
@@ -61,13 +66,19 @@ def test_tshark_numeric_tcp_flags_are_normalized():
     assert normalize_tcp_flags("") == ""
 
 
+def test_transport_port_prefers_populated_protocol():
+    assert _transport_port({"tcp.dstport": "443", "udp.dstport": "53"}, "tcp.dstport", "udp.dstport") == "443"
+    assert _transport_port({"tcp.dstport": "", "udp.dstport": "53"}, "tcp.dstport", "udp.dstport") == "53"
+    assert _transport_port({"tcp.dstport": "", "udp.dstport": ""}, "tcp.dstport", "udp.dstport") == ""
+
+
 def test_tshark_fields_with_embedded_commas_keep_their_columns(monkeypatch):
     tshark_output = (
         "frame.time_epoch\tip.src\tip.dst\tip.proto\ttcp.srcport\ttcp.dstport\t"
-        "tcp.flags\tframe.len\n"
+        "udp.srcport\tudp.dstport\ttcp.flags\tframe.len\n"
         "1000.0\t172.16.198.128,172.16.198.129\t172.16.198.129,172.16.198.128\t"
-        "1,17\t\t\t\t100\n"
-        "1000.1\t172.16.198.129\t172.16.198.128\t17\t\t20\t\t60\n"
+        "1,17\t\t\t53000\t20\t\t100\n"
+        "1000.1\t172.16.198.129\t172.16.198.128\t17\t\t\t53001\t53\t\t60\n"
     )
     monkeypatch.setattr(
         "netdefender.capture.subprocess.run",
@@ -79,7 +90,8 @@ def test_tshark_fields_with_embedded_commas_keep_their_columns(monkeypatch):
     assert rows[0] == "timestamp,source_ip,destination_ip,protocol,source_port,destination_port,tcp_flags,packet_length"
     assert "UDP" in rows[1]
     assert "172.16.198.128,172.16.198.129" in rows[1]
-    assert rows[2].endswith(",UDP,,20,,60")
+    assert rows[1].endswith(",UDP,53000,20,,100")
+    assert rows[2].endswith(",UDP,53001,53,,60")
 
 
 def test_json_parser():
