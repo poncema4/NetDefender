@@ -1,56 +1,123 @@
 # NetDefender
-**Network Security Monitoring & Cryptographic Evidence Lab**
+
+**Controlled Network Reconnaissance Detection & Cryptographic Evidence Lab**
 
 ## Overview
 
-NetDefender is a controlled network-security lab and software project for **ISCI 6101: Network Security Engineering & Cryptography**. It combines a small Kali/Metasploitable virtual lab with a purpose-built security-analysis application.
+NetDefender is a controlled network-security software project for **ISCI 6101: Network Security Engineering & Cryptography**. It analyzes normalized network events and real PCAP/PCAPNG captures from an isolated VMware lab, detects selected reconnaissance patterns, preserves explainable evidence, and produces machine-readable JSON and dependency-free HTML reports.
 
-The goal is to make network-security and cryptography concepts observable through code without turning the project into a collection of unrelated enterprise products.
+The controlled lab uses Kali Linux, Metasploitable, Nmap, and Wireshark/TShark to generate and capture authorized traffic. NetDefender is the primary software artifact that parses that evidence, normalizes packet fields, applies deterministic detection rules, and presents the results.
 
-The virtual machines generate controlled traffic; NetDefender performs the primary coding, parsing, detection, cryptographic evidence, and reporting work.
+## Problem
 
-## Core Flow
+Network reconnaissance can produce recognizable traffic patterns, but packet captures are difficult to interpret consistently without a defined analysis process. NetDefender turns selected reconnaissance behaviors into explicit, testable rules so that controlled TCP and UDP scans can be analyzed from the same captured evidence.
+
+## Objectives
+
+- Parse normalized network events from JSON and CSV input.
+- Analyze PCAP/PCAPNG captures through TShark.
+- Normalize protocol, transport-port, IP, timestamp, TCP-flag, and packet-length fields.
+- Detect controlled TCP SYN reconnaissance.
+- Detect controlled UDP reconnaissance.
+- Produce explainable findings with source, target, ports, packet count, and observation window.
+- Demonstrate SHA-256 and HMAC-SHA256 evidence integrity concepts.
+- Detect controlled evidence tampering through manifest verification.
+- Generate concise JSON and HTML reports.
+- Validate the software with automated tests and GitHub Actions.
+
+## MVP Scope
+
+- Python 3.11+ command-line application.
+- JSON and CSV network-event parsing.
+- PCAP/PCAPNG analysis through the optional TShark adapter.
+- `NET-RECON-001` TCP SYN reconnaissance detection.
+- `NET-RECON-002` UDP reconnaissance detection.
+- Deterministic, explainable findings.
+- SHA-256 and HMAC-SHA256 evidence helpers.
+- Tamper-detecting evidence manifests.
+- Dependency-free HTML security reports.
+- Linux and Windows setup scripts.
+- Automated pytest coverage and GitHub Actions validation.
+- Controlled Kali → Metasploitable network evidence for TCP and UDP demonstrations.
+
+## Architecture / Workflow
 
 ```text
-Kali / Nmap
-    ↓
+Controlled VMware Lab
+Kali Linux
+  │
+  └── Nmap generates authorized TCP/UDP traffic
+          │
+          ▼
 Metasploitable
-    ↓
-Wireshark / tshark
-    ↓
-PCAP / normalized events
-    ↓
-Parser / normalizer
-    ↓
-Detection engine
-    ↓
-Findings + evidence
-    ↓
-SHA-256 / HMAC
-    ↓
-JSON + HTML report
-    ↓
-GitHub Actions CI
+          │
+          ▼
+Wireshark / TShark
+          │
+          └── PCAP / PCAPNG
+                  │
+                  ▼
+            NetDefender
+                  │
+          TShark field extraction
+                  │
+                  ▼
+          Parser / Normalizer
+                  │
+                  ▼
+          NetworkEvent objects
+                  │
+                  ▼
+          Detection Engine
+             │          │
+             ▼          ▼
+        TCP SYN       UDP
+        rule 001     rule 002
+             │          │
+             └────┬─────┘
+                  ▼
+             Findings
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+       JSON output      HTML report
 ```
 
-## Current Software Scope
+Cryptographic evidence helpers are available as a separate evidence workflow:
 
-- Python network-event models
-- JSON/CSV parsing and normalization
-- Optional PCAP/PCAPNG analysis through tshark
-- `NET-RECON-001` TCP SYN reconnaissance detection
-- `NET-RECON-002` UDP reconnaissance detection
-- Explainable finding generation
-- SHA-256 evidence hashing
-- HMAC-SHA256 integrity/authenticity demonstration
-- Tamper-detecting evidence manifests
-- Dependency-free HTML reports
-- pytest automated tests
-- Linux setup script
-- Windows PowerShell setup script
-- GitHub Actions matrix across Ubuntu/Windows and Python 3.11–3.14
+```text
+Evidence artifact
+      ↓
+SHA-256 digest
+      ↓
+HMAC-SHA256 tag
+      ↓
+Integrity manifest
+      ↓
+Verify original artifact
+      ↓
+Modify artifact
+      ↓
+Verification fails
+```
 
-The complete detection/project contract is in [`docs/rules.md`](docs/rules.md).
+## Tech Stack
+
+| Area | Technology |
+|---|---|
+| Language | Python 3.11+ |
+| Application | Python standard library |
+| Testing | pytest |
+| Packet analysis | TShark |
+| Packet capture / inspection | Wireshark |
+| Controlled test host | Kali Linux |
+| Controlled target | Metasploitable |
+| Traffic generation | Nmap |
+| Virtualization | VMware Workstation |
+| Integrity | SHA-256 + HMAC-SHA256 |
+| Reporting | Dependency-free HTML + JSON |
+| Version Control | Git / GitHub |
+| CI | GitHub Actions |
 
 ## Project Structure
 
@@ -67,141 +134,130 @@ NetDefender/
 │   ├── parser.py
 │   └── report.py
 ├── tests/
-├── data/samples/
+│   └── test_netdefender.py
+├── data/
+│   └── samples/
+│       └── syn-scan.json
 ├── docs/
 │   ├── architecture.md
 │   ├── evidence.md
+│   ├── pcap.md
 │   ├── rules.md
 │   └── setup.md
 ├── scripts/
 │   ├── setup.sh
 │   └── setup.ps1
 ├── topology/
-├── .github/workflows/tests.yml
-├── README.md
+│   └── ip-plan.md
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+├── .gitignore
 ├── pyproject.toml
+├── README.md
 └── requirements.txt
 ```
 
-## Local Setup
+## Security Concepts
 
-### Linux
+- Network reconnaissance and port scanning
+- TCP SYN scanning
+- UDP reconnaissance
+- Packet capture and network-event normalization
+- Deterministic detection rules
+- Explainable security findings
+- SHA-256 evidence hashing
+- HMAC-SHA256 integrity/authenticity concepts
+- Evidence tampering detection
+- Controlled security testing
+- Security evidence and reporting
+
+## Expected Demonstration
+
+Run controlled reconnaissance traffic from Kali against the isolated Metasploitable VM, capture the traffic with Wireshark, and analyze the resulting PCAP/PCAPNG with NetDefender.
+
+For the TCP scenario, an authorized Nmap SYN scan produces traffic across many TCP destination ports. NetDefender extracts the packet fields through TShark and detects the documented `NET-RECON-001` threshold.
+
+For the UDP scenario, an authorized Nmap UDP scan produces probes across multiple UDP destination ports. NetDefender detects the documented `NET-RECON-002` threshold and reports the observed destination ports, packet count, and time window.
+
+For the control scenario, below-threshold TCP traffic is analyzed and produces no finding. This demonstrates that the detector does not fire simply because TCP traffic exists.
+
+The HTML reports present the same findings in a concise analyst-readable format. The cryptographic evidence helpers separately demonstrate how an evidence artifact can be hashed, authenticated with HMAC-SHA256, and checked for later modification.
+
+## Security Scope and Limitations
+
+NetDefender is a local course-project security laboratory, not a production intrusion-detection system. Its detection engine intentionally covers only two reconnaissance patterns with fixed, documented thresholds.
+
+A finding means that the observed events matched a defined NetDefender rule. It does not by itself prove malicious intent, compromise, attribution, or that the traffic represents an attack in every environment.
+
+Real PCAP analysis requires TShark to be installed. The core JSON/CSV application does not require TShark.
+
+The VMware environment must remain isolated because Metasploitable is intentionally vulnerable. Nmap testing must target only the authorized lab systems.
+
+SHA-256 and HMAC-SHA256 provide integrity/authentication mechanisms for the controlled evidence demonstration, but they do not by themselves establish a legal chain of custody.
+
+## Final MVP Status
+
+The NetDefender MVP is **functionally complete and ready for course submission**. The implemented parser, PCAP/TShark adapter, TCP and UDP detection rules, cryptographic evidence helpers, reporting, automated tests, setup automation, and CI are documented and synchronized with the implementation.
+
+The real controlled lab has been validated with TCP and UDP Nmap traffic. The current automated test suite passes **17/17 tests**, and the TCP positive, TCP control, and UDP HTML reports have been generated from the corresponding evidence.
+
+Final work is limited to organizing the validated evidence and preparing the course presentation/submission materials.
+
+## Out of Scope
+
+- Internet-wide or arbitrary network scanning
+- Production intrusion-detection deployment
+- Full penetration-testing automation
+- Enterprise SIEM functionality
+- Large vulnerability databases
+- Malware analysis
+- Universal attack detection
+- Generic security scoring
+- Uncontrolled scanning of third-party systems
+
+## Future Enhancements
+
+- Additional deterministic reconnaissance rules.
+- More protocol-aware traffic analysis.
+- Expanded PCAP evidence extraction.
+- Additional evidence-manifest workflows.
+- Optional analyst-facing interface if a concrete need is identified.
+- Expanded automated test fixtures for additional traffic patterns.
+
+## Verification
+
+From the repository root, activate the project virtual environment and run:
 
 ```bash
-chmod +x scripts/setup.sh
-./scripts/setup.sh
+python -m pytest
 ```
 
-### Windows PowerShell
+The current suite should complete with:
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\scripts\setup.ps1
+```text
+17 passed
 ```
 
-Both scripts create `.venv`, install the package/test dependency, run the complete test suite, run the deterministic sample, generate `local-report.html`, and report whether optional tshark is available.
-
-For the detailed setup, troubleshooting, PCAP workflow, and VMware instructions, see [`docs/setup.md`](docs/setup.md).
-
-## Synthetic Smoke Test
-
-The core application can be tested without VMware:
+To run the deterministic sample and generate an HTML report:
 
 ```bash
-python -m netdefender.cli data/samples/syn-scan.json --html report.html
+python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
 ```
 
-The synthetic sample is version-controlled specifically so software behavior can be tested deterministically before real lab traffic exists.
+For a real PCAP/PCAPNG capture, with TShark installed:
 
-## Technology Choices
+```bash
+python -m netdefender.cli /path/to/capture.pcapng --html report.html
+```
 
-| Area | Technology | Purpose |
-|---|---|---|
-| Core application | Python 3.11+ | Parsing, detection, crypto, reporting |
-| Testing | pytest | Automated validation |
-| Lab | VMware Workstation | Isolated virtual machines |
-| Test host | Kali Linux | Controlled security testing |
-| Target | Metasploitable | Controlled vulnerable target |
-| Reconnaissance | Nmap | Repeatable TCP/UDP scans |
-| Traffic evidence | Wireshark / tshark | Packet observation and export |
-| Integrity | SHA-256 + HMAC-SHA256 | Evidence integrity/authenticity concepts |
-| CI | GitHub Actions | Repeatable automated checks |
-
-A TypeScript interface remains optional. It will only be added if it solves a real analyst-facing problem rather than increasing the technology count.
-
-## Phase Plan
-
-The project is intentionally **coding-first** so software that can be built away from the laptop is completed before the physical lab work.
-
-| Phase | Focus | Location | Status |
-|---|---|---|---|
-| 1 | Architecture + data model | Anywhere | **Complete** |
-| 2 | Parser + validation | Anywhere | **Implemented** |
-| 3 | Detection engine | Anywhere | **Implemented** |
-| 4 | Cryptographic evidence | Anywhere | **Implemented** |
-| 5 | Reporting | Anywhere | **Implemented** |
-| 6 | Automated testing + CI + local setup automation | Anywhere | **Complete / verified** |
-| 7 | VMware lab configuration | Laptop | **Next** |
-| 8 | Real Nmap + Wireshark collection | Laptop | Pending |
-| 9 | End-to-end validation + evidence | Partly | Pending |
-| 10 | Final report + presentation | Anywhere | Pending |
-
-**Phase 1 is complete.** The coding-first milestone through Phase 6 is now also complete because the latest commit has been verified by the full CI matrix. Phase 7 is the next phase: configuring the actual VMware lab.
-
-## CI Definition of Done
-
-The CI pipeline intentionally goes beyond a single `pytest` call. It validates:
-
-- Ubuntu;
-- Windows;
-- Python 3.11;
-- Python 3.12;
-- Python 3.13;
-- Python 3.14;
-- editable package installation;
-- the complete pytest suite;
-- CLI execution;
-- generated HTML report existence.
-
-The latest verified run passed all eight matrix jobs. This is a software/CI validation result, not a claim that the VMware lab has already been tested.
-
-GitHub's current `setup-python` documentation recommends explicitly selecting Python versions and supports dependency caching; NetDefender follows that model in CI.
-
-## Final Demonstration
-
-The intended final scenario is:
-
-1. Kali performs an authorized Nmap scan against the user's Metasploitable VM.
-2. Wireshark/tshark captures the resulting traffic.
-3. Relevant traffic is analyzed as PCAP or exported into NetDefender's normalized event format.
-4. NetDefender parses and normalizes the evidence.
-5. Detection rules identify the controlled reconnaissance pattern.
-6. A security finding is generated with supporting evidence.
-7. SHA-256 and HMAC metadata are generated.
-8. Evidence is deliberately modified and verification demonstrates tamper detection.
-9. A readable JSON/HTML report is produced.
-10. CI validates the software.
-
-No result will be presented as general-purpose real-world IDS capability; conclusions will be limited to the controlled scenarios actually tested.
-
-## Security Scope
-
-All security testing must remain inside the NetDefender virtual lab. Kali/Nmap traffic must target only the user's Metasploitable VM or another explicitly authorized NetDefender lab system.
-
-Do not scan university networks, public IP addresses, third-party systems, or unrelated host devices.
-
-## Limitations
-
-- Detection focuses on selected reconnaissance patterns rather than all attacks.
-- Detection quality depends on the event fields supplied to the analyzer.
-- The virtual lab is not a production enterprise network.
-- SHA-256/HMAC demonstrations do not by themselves establish legal chain of custody.
-- Metasploitable is intentionally vulnerable and must remain isolated.
+The GitHub Actions workflow validates package installation, the full test suite, CLI execution, and HTML report generation across Ubuntu and Windows with Python 3.11–3.14.
 
 ## Documentation
 
-- [`docs/setup.md`](docs/setup.md) — complete Linux/Windows setup, troubleshooting, PCAP, and VMware workflow
-- [`docs/rules.md`](docs/rules.md) — detection, testing, CI, safety, evidence, and project rules
-- [`docs/architecture.md`](docs/architecture.md) — architecture and phase boundaries
-- [`docs/evidence.md`](docs/evidence.md) — evidence workflow
-- [`topology/ip-plan.md`](topology/ip-plan.md) — lab addressing notes
+- [Architecture](docs/architecture.md)
+- [Setup](docs/setup.md)
+- [PCAP Analysis](docs/pcap.md)
+- [Detection Rules](docs/rules.md)
+- [Evidence](docs/evidence.md)
+- [Lab IP Plan](topology/ip-plan.md)
