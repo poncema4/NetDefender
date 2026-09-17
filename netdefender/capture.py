@@ -50,6 +50,14 @@ def normalize_protocol(value: str | None) -> str:
     if normalized in _IP_PROTOCOLS:
         return _IP_PROTOCOLS[normalized]
 
+    # TShark can return multiple protocol values for packets with multiple
+    # protocol layers. Prefer the innermost recognized transport/application
+    # protocol so a value such as "1,17" is classified as UDP.
+    for item in reversed(normalized.split(",")):
+        item = item.strip()
+        if item in _IP_PROTOCOLS:
+            return _IP_PROTOCOLS[item]
+
     # Keep compatibility with callers/tests that already provide protocol names.
     if normalized in _IP_PROTOCOLS.values():
         return normalized
@@ -81,15 +89,18 @@ def pcap_to_csv(pcap: Path) -> str:
         "fields",
         "-E",
         "header=y",
+        # Use a tab delimiter because fields such as ip.src/ip.dst can contain
+        # multiple values separated by commas. A comma delimiter can therefore
+        # shift CSV columns even when quoting is requested by TShark.
         "-E",
-        "separator=,",
+        "separator=\\t",
         "-E",
         "quote=d",
     ]
     for field in FIELDS:
         command.extend(("-e", field))
     result = subprocess.run(command, check=True, capture_output=True, text=True)
-    reader = csv.DictReader(io.StringIO(result.stdout))
+    reader = csv.DictReader(io.StringIO(result.stdout), delimiter="\t")
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
