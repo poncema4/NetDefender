@@ -1,480 +1,354 @@
 # NetDefender Setup Guide
 
-This guide is the source of truth for setting up the **NetDefender software locally** and, later, connecting it to the controlled VMware security lab.
+This guide explains how to install NetDefender, run the automated tests, use the CLI, analyze real PCAP/PCAPNG evidence, and connect the application to the controlled VMware lab.
 
-## 1. What You Are Setting Up
+## 1. Software Requirements
 
-NetDefender has two deliberately separate environments:
+- Python 3.11 or newer
+- Git
+- A terminal or PowerShell
+- TShark for real PCAP/PCAPNG analysis
+- VMware Workstation only for the controlled lab
+- Kali Linux and Metasploitable only for the controlled lab
 
-1. **Software environment** — Python, the NetDefender package, pytest, Git, and optional tshark for real PCAP analysis.
-2. **Controlled network lab** — VMware Workstation, Kali Linux, and Metasploitable.
+The core JSON/CSV workflow does not require TShark or VMware.
 
-The software environment does **not** require the VMs. You can build, test, generate reports, and run the synthetic sample on a normal Linux or Windows computer.
-
-The VMware lab is only required when we move from deterministic development data to real Nmap/Wireshark evidence.
-
-The project intentionally avoids unnecessary infrastructure products. NetDefender is the primary software project; Kali, Metasploitable, Nmap, and Wireshark/tshark provide the controlled laboratory traffic and evidence.
-
----
-
-## 2. Supported Development Platforms
-
-| Platform | Core development | Real PCAP parsing | VMware lab |
-|---|---|---|---|
-| Ubuntu/Linux | Supported | Supported with tshark | Supported |
-| Windows | Supported | Supported with tshark | Supported |
-| macOS | Not the primary documented target | Possible | Not part of the documented lab |
-
-The repository requires **Python 3.11 or newer**. The CI matrix currently exercises Python 3.11, 3.12, 3.13, and 3.14 on both Ubuntu and Windows.
-
-GitHub's current `setup-python` documentation recommends explicitly selecting a Python version instead of relying on whatever happens to be preinstalled on a runner. NetDefender follows that approach in CI.
-
----
-
-## 3. Fastest Setup: Linux
-
-From a terminal in the repository root:
-
-```bash
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-```
-
-The script:
-
-1. Finds a usable Python 3.11+ interpreter.
-2. Creates `.venv` if it does not exist.
-3. Upgrades pip inside the virtual environment.
-4. Installs NetDefender in editable mode with the test dependency.
-5. Runs the complete pytest suite.
-6. Runs the deterministic CLI sample.
-7. Writes `local-report.html` as a smoke-test artifact.
-8. Reports whether `tshark` is available without making tshark mandatory for core development.
-
-Activate the environment later with:
-
-```bash
-source .venv/bin/activate
-```
-
-Then normal development is:
-
-```bash
-python -m pytest
-python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
-```
-
----
-
-## 4. Fastest Setup: Windows PowerShell
-
-Open PowerShell in the repository root and run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\scripts\setup.ps1
-```
-
-The script performs the Windows equivalent of the Linux setup:
-
-1. Finds Python 3.11+.
-2. Creates `.venv` if necessary.
-3. Upgrades pip in that virtual environment.
-4. Installs NetDefender and its test dependency.
-5. Runs pytest.
-6. Runs the deterministic CLI sample.
-7. Creates `local-report.html`.
-8. Reports whether tshark is installed.
-
-Activate the environment later with:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-If PowerShell script execution is restricted, the `Set-ExecutionPolicy -Scope Process ...` command above changes policy only for the current PowerShell process.
-
----
-
-## 5. Manual Linux Setup
-
-If you do not want to use the script:
-
-### Check Python
-
-```bash
-python3 --version
-```
-
-You need Python 3.11 or newer.
-
-### Clone the repository
+## 2. Clone the Repository
 
 ```bash
 git clone https://github.com/poncema4/NetDefender.git
 cd NetDefender
 ```
 
-### Create the virtual environment
+## 3. Linux Setup
+
+From the repository root:
 
 ```bash
-python3 -m venv .venv
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+The script creates `.venv`, upgrades pip, installs NetDefender with its test dependency, runs the complete test suite, runs the deterministic sample, generates `local-report.html`, and reports whether TShark is available.
+
+Activate the environment later with:
+
+```bash
 source .venv/bin/activate
 ```
 
-### Install the project
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[test]"
-```
-
-### Run tests
+Then run:
 
 ```bash
 python -m pytest
-```
-
-### Run the synthetic sample
-
-```bash
 python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
 ```
 
----
+## 4. Windows Setup
 
-## 6. Manual Windows Setup
-
-Check Python:
+From PowerShell in the repository root:
 
 ```powershell
-py --version
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\setup.ps1
 ```
 
-or:
+Activate later with:
 
 ```powershell
-python --version
-```
-
-Clone and enter the repository:
-
-```powershell
-git clone https://github.com/poncema4/NetDefender.git
-Set-Location NetDefender
-```
-
-Create and activate the virtual environment:
-
-```powershell
-py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install:
-
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -e ".[test]"
-```
-
-Test:
+Then run:
 
 ```powershell
 python -m pytest
-```
-
-Run the sample:
-
-```powershell
 python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
 ```
 
----
+## 5. Manual Python Setup
 
-## 7. What Is Required vs Optional
+### Linux
 
-### Required for software development
+```bash
+python3 --version
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[test]"
+python -m pytest
+```
 
-- Git
-- Python 3.11+
-- Internet access for the initial Python package installation
-- A shell/terminal
+### Windows
 
-### Required for automated CI
+```powershell
+py --version
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[test]"
+python -m pytest
+```
 
-Nothing additional on your computer. GitHub Actions creates its own environment.
+## 6. TShark for Real PCAP Analysis
 
-### Optional for real PCAP work
+Verify TShark:
 
-- Wireshark/tshark
+```bash
+tshark --version
+```
 
-NetDefender does not add a Python packet-processing dependency just to read PCAP files. The real-capture adapter invokes `tshark` and converts selected packet fields into the same normalized event model used by the rest of the application.
-
-### Required only for the live lab
-
-- VMware Workstation
-- Kali Linux VM
-- Metasploitable VM
-- An isolated VMware network
-- Nmap inside Kali
-- Wireshark/tshark where capture/export is performed
-
----
-
-## 8. Installing tshark on Ubuntu
-
-For the real PCAP phase:
+On Ubuntu/Debian:
 
 ```bash
 sudo apt update
 sudo apt install tshark
 ```
 
-Verify:
+On Windows, install Wireshark with the TShark command-line component and verify that `tshark.exe` is available on PATH.
+
+NetDefender reads an existing capture through TShark. The application does not require live packet-capture privileges.
+
+## 7. CLI Usage
+
+Analyze a JSON or CSV event file:
 
 ```bash
-tshark --version
+python -m netdefender.cli data/samples/syn-scan.json
 ```
 
-During installation Ubuntu may ask whether non-root users should be allowed to capture packets. For this project, packet capture should remain limited to the controlled lab interface. The NetDefender PCAP adapter itself reads an existing capture file, so live capture privileges are not required for the application.
-
----
-
-## 9. Installing Wireshark/tshark on Windows
-
-Install Wireshark using its official Windows installer and ensure the command-line `tshark.exe` component is installed.
-
-Then open a new PowerShell window and verify:
-
-```powershell
-tshark --version
-```
-
-If PowerShell cannot find `tshark`, either add the Wireshark installation directory to PATH or invoke tshark using its full path. NetDefender should not require hard-coded machine-specific paths.
-
----
-
-## 10. Project Smoke Test
-
-After installation, this command should work without VMware:
+Generate an HTML report at the same time:
 
 ```bash
 python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
 ```
 
-Expected behavior:
-
-- the sample parses successfully;
-- the TCP SYN reconnaissance rule produces a finding;
-- structured output is printed;
-- `local-report.html` is created;
-- the HTML file is non-empty.
-
-The exact finding is deterministic because the input sample is synthetic and version-controlled.
-
----
-
-## 11. Real PCAP Smoke Test
-
-Once tshark is installed, NetDefender can analyze a PCAP/PCAPNG file through the CLI:
+Analyze a real PCAP/PCAPNG file:
 
 ```bash
-python -m netdefender.cli path/to/capture.pcap --html pcap-report.html
+python -m netdefender.cli /path/to/capture.pcapng
 ```
 
-The PCAP adapter extracts only the fields needed by the normalized `NetworkEvent` model:
-
-- frame timestamp;
-- source IP;
-- destination IP;
-- protocol;
-- source port;
-- destination port;
-- TCP flags;
-- packet length.
-
-If tshark is unavailable, the command should fail with an actionable message rather than silently pretending that a PCAP was analyzed.
-
----
-
-## 12. Controlled VMware Lab Setup
-
-Do this **after** the software setup and automated tests are working.
-
-### 12.1 Start the VMs
-
-Start:
-
-- Kali Linux — authorized test host
-- Metasploitable — intentionally vulnerable target
-
-### 12.2 Isolate the network
-
-Put both VMs on the same isolated/private VMware network.
-
-Do not bridge Metasploitable onto a normal home, university, public, or production network.
-
-Metasploitable is intentionally vulnerable. Treat it as an untrusted machine.
-
-### 12.3 Identify Metasploitable's address
-
-On Metasploitable:
+Generate an HTML report from a real capture:
 
 ```bash
-ip addr
+python -m netdefender.cli /path/to/capture.pcapng --html report.html
 ```
 
-or:
+If the input format cannot be inferred from the extension, use the CLI `--format` option.
 
-```bash
-ifconfig
-```
+## 8. Controlled VMware Lab
 
-Record the actual lab IP in `topology/ip-plan.md`.
-
-### 12.4 Identify Kali's address and route
-
-On Kali:
-
-```bash
-ip addr
-ip route
-```
-
-Confirm the two VMs share the expected isolated subnet.
-
-### 12.5 Verify connectivity
-
-From Kali:
-
-```bash
-ping -c 4 <METASPLOITABLE_IP>
-```
-
-Do not proceed until the address is confirmed to be the Metasploitable VM.
-
----
-
-## 13. Nmap Rules for This Project
-
-Every security scan must satisfy all of these conditions:
-
-1. The target must be the user's Metasploitable VM or another explicitly authorized lab machine.
-2. The target address must be verified immediately before scanning.
-3. The scan must remain on the isolated lab network.
-4. Do not use NetDefender commands against public IP addresses.
-5. Do not scan university infrastructure.
-6. Do not scan neighbors' or other people's devices.
-7. Do not scan unrelated host machines merely because they are reachable.
-8. Save scan output so the result can be compared with captured traffic.
-9. Record the exact Nmap command used.
-10. Record the target IP and timestamp.
-11. Capture the corresponding traffic when the experiment calls for packet evidence.
-12. Do not present a controlled-lab observation as proof of universal network behavior.
-
----
-
-## 14. Recommended Development Order
-
-Use this order so the project stays coding-first:
+The lab should remain isolated/private.
 
 ```text
-1. Clone repository
-2. Run setup script
-3. Run pytest
-4. Run synthetic CLI sample
-5. Inspect generated HTML report
-6. Install tshark only when PCAP work begins
-7. Configure VMware lab
-8. Verify Kali ↔ Metasploitable connectivity
-9. Run one authorized Nmap experiment
-10. Capture traffic
-11. Analyze the PCAP with NetDefender
-12. Compare Nmap result ↔ packet evidence ↔ NetDefender finding
-13. Repeat for additional scan types
-14. Preserve evidence and screenshots
+Kali Linux
+   │
+   │ Nmap
+   ▼
+Metasploitable
+   │
+   │ captured traffic
+   ▼
+Wireshark / TShark
+   │
+   ▼
+PCAP/PCAPNG
+   │
+   ▼
+NetDefender
 ```
 
----
+Before testing:
 
-## 15. Troubleshooting
+1. Start Kali and Metasploitable.
+2. Put both VMs on the isolated VMware network.
+3. Confirm each VM's IP address.
+4. Confirm the target is the Metasploitable VM.
+5. Verify Kali can reach the target.
+6. Start packet capture when the experiment requires it.
+7. Run only the authorized Nmap command for the experiment.
+8. Save the capture and preserve the exact command used.
 
-### `python3: command not found`
+Never bridge Metasploitable onto a normal home, university, production, or public network.
 
-Install Python 3.11+ using the operating system's package manager or official Python distribution, then rerun the setup script.
+## 9. Current Controlled Lab Addresses
 
-### Python exists but is too old
+The validated lab uses:
 
-Check:
+| System | Interface | Address |
+|---|---|---|
+| Kali Linux | `eth1` | `172.16.198.129/24` |
+| Metasploitable | `eth0` | `172.16.198.128/24` |
+| Ubuntu VMware host | `vmnet1` | `172.16.198.1/24` |
+| Ubuntu VMware host | `vmnet8` | `172.16.250.1/24` |
+
+Verify the addresses on the machines before an experiment rather than relying only on documentation.
+
+## 10. Controlled TCP Demonstration
+
+On Kali, capture traffic on `eth1` with Wireshark and run the authorized scan against the verified Metasploitable address:
+
+```bash
+sudo nmap -sS -p 1-100 172.16.198.128
+```
+
+Save the resulting capture as:
+
+```text
+tcp-syn-scan-001.pcapng
+```
+
+Analyze it from the NetDefender environment:
+
+```bash
+python -m netdefender.cli /home/kali/NetDefender-evidence/tcp-syn-scan-001.pcapng
+```
+
+Generate the report:
+
+```bash
+python -m netdefender.cli \
+  /home/kali/NetDefender-evidence/tcp-syn-scan-001.pcapng \
+  --html /home/kali/NetDefender-evidence/tcp-syn-scan-001-report.html
+```
+
+The validated capture produced one `NET-RECON-001` finding with destination ports 1–100.
+
+## 11. TCP Control Demonstration
+
+Use the below-threshold control capture:
+
+```text
+/home/kali/NetDefender-evidence/tcp-control-001.pcapng
+```
+
+Run:
+
+```bash
+python -m netdefender.cli /home/kali/NetDefender-evidence/tcp-control-001.pcapng
+```
+
+Expected result:
+
+```text
+[]
+```
+
+An HTML report can also be generated:
+
+```bash
+python -m netdefender.cli \
+  /home/kali/NetDefender-evidence/tcp-control-001.pcapng \
+  --html /home/kali/NetDefender-evidence/tcp-control-001-report.html
+```
+
+The validated control report states that no findings were generated.
+
+## 12. Controlled UDP Demonstration
+
+On Kali, capture traffic on `eth1` and run the authorized UDP scan against the verified Metasploitable address:
+
+```bash
+sudo nmap -sU -p 1-20 172.16.198.128
+```
+
+Save the resulting capture as:
+
+```text
+udp-scan-001.pcapng
+```
+
+Analyze it:
+
+```bash
+python -m netdefender.cli /home/kali/NetDefender-evidence/udp-scan-001.pcapng
+```
+
+Generate the report:
+
+```bash
+python -m netdefender.cli \
+  /home/kali/NetDefender-evidence/udp-scan-001.pcapng \
+  --html /home/kali/NetDefender-evidence/udp-scan-001-report.html
+```
+
+The validated capture produced one `NET-RECON-002` finding with destination ports 1–20 and a packet count of 87 within the documented 10-second observation window.
+
+## 13. Verification Commands
+
+Run the automated suite:
+
+```bash
+python -m pytest
+```
+
+Run the deterministic sample:
+
+```bash
+python -m netdefender.cli data/samples/syn-scan.json --html local-report.html
+```
+
+Run a real capture:
+
+```bash
+python -m netdefender.cli /path/to/capture.pcapng --html report.html
+```
+
+## 14. Troubleshooting
+
+### Python is missing or too old
 
 ```bash
 python3 --version
 ```
 
-NetDefender requires 3.11+.
+NetDefender requires Python 3.11+.
 
-### `venv` creation fails on Ubuntu
+### Virtual environment creation fails on Ubuntu
 
-Install the matching Python venv package, for example:
+Install the matching venv package:
 
 ```bash
 sudo apt install python3-venv
 ```
 
-Then rerun the setup script.
+### pytest is missing
 
-### `pytest` cannot be found
-
-Do not install it globally. Activate `.venv` and run:
+Activate `.venv` and install the test extra:
 
 ```bash
 python -m pip install -e ".[test]"
 python -m pytest
 ```
 
-### `No module named netdefender`
+Use `python -m pytest` rather than a globally installed pytest executable so the active virtual environment is used.
 
-Make sure the virtual environment is active and the repository root is the current directory. Then run:
-
-```bash
-python -m pip install -e ".[test]"
-```
-
-### `tshark` cannot be found
-
-Verify:
+### TShark is missing
 
 ```bash
 tshark --version
 ```
 
-If it is not installed, install Wireshark/tshark for the operating system. Core JSON/CSV development does not require tshark.
+Install Wireshark/TShark for the operating system before attempting PCAP analysis.
 
-### PCAP analysis says tshark is missing
+### PCAP analysis fails
 
-This is an environment problem, not a reason to bypass the adapter. Install tshark and rerun the same command.
+Confirm:
 
-### Tests fail
+- the capture path is correct;
+- TShark is installed and on PATH;
+- the capture is readable;
+- the virtual environment is active;
+- the target PCAP came from the controlled lab.
 
-Do not simply rerun the job until it turns green. Read the failing test and traceback, determine whether the defect is in implementation, test expectations, packaging, or environment setup, fix the underlying problem, and rerun the complete suite.
+Do not silently substitute synthetic data for a failed real-capture analysis.
 
-### GitHub Actions fails while local tests pass
+### GitHub Actions fails
 
-Check:
+Read the failing matrix job and traceback. Check Python version, operating system, package installation, path handling, shell behavior, and test output. Fix the underlying issue rather than weakening the test.
 
-1. the Python version used by the failing matrix entry;
-2. operating-system differences;
-3. path handling;
-4. shell behavior;
-5. packaging/install behavior;
-6. the exact failing traceback.
-
-The goal is a genuinely portable project, not a CI-only workaround.
-
----
-
-## 16. Evidence and Git Rules
+## 15. Security and Evidence Handling
 
 Do not commit:
 
@@ -482,78 +356,30 @@ Do not commit:
 - private keys;
 - HMAC secrets;
 - session tokens;
-- unrelated PCAPs;
 - personal traffic captures;
+- unrelated PCAPs;
 - scans from outside the controlled lab;
 - machine-specific absolute paths;
-- generated virtual environments;
-- generated reports unless they are intentionally part of the submission evidence.
+- virtual environments;
+- generated reports unless intentionally included as submission evidence.
 
-Before committing a new experiment, ask:
+Keep controlled evidence outside the source tree when possible. The current lab evidence path used during validation is `/home/kali/NetDefender-evidence/`.
 
-- What exact security question was tested?
-- What was the authorized target?
-- What command generated the traffic?
-- What packet evidence was captured?
-- What did NetDefender detect?
-- What did it not detect?
-- What limitations apply?
+## 16. Git Workflow
 
----
+After a documentation or code change is pushed to GitHub:
 
-## 17. CI Philosophy
+```bash
+cd ~/NetDefender
+git pull origin main
+```
 
-The CI pipeline is intentionally stricter than a single `pytest` invocation. It should validate:
+For normal development:
 
-- supported Python versions;
-- Linux behavior;
-- Windows behavior;
-- package installation;
-- the complete automated test suite;
-- the CLI entry point;
-- deterministic sample processing;
-- HTML report creation.
+```bash
+git add .
+git commit -m "Describe the change"
+git push origin main
+```
 
-The CI configuration uses explicit Python versions and the current GitHub-maintained checkout/setup actions. This follows GitHub's documented approach to reproducible Python setup.
-
-A green CI result means the tested software contract passed. It does **not** mean the VMware lab has been validated yet.
-
----
-
-## 18. Definition of Done for the Software Milestone
-
-The coding-first milestone is not considered complete merely because a GitHub Actions job turns green once.
-
-It is complete when:
-
-- the failing tests have been understood and fixed at the correct layer;
-- the full suite passes;
-- the package installs cleanly;
-- the CLI works;
-- the synthetic sample works;
-- the report is generated;
-- Linux and Windows CI pass across the supported Python matrix;
-- setup scripts are usable;
-- documentation matches the actual repository;
-- the repository contains no accidental secrets or machine-specific assumptions;
-- the latest commit itself has a successful CI run.
-
-After that point, the project moves into the live-lab phases rather than continuing to add software merely for the sake of adding software.
-
----
-
-## 19. Phase Transition
-
-The coding-first phases are:
-
-| Phase | Status |
-|---|---|
-| 1 — Architecture + data model | Complete |
-| 2 — Parser + validation | Implemented |
-| 3 — Detection engine | Implemented |
-| 4 — Cryptographic evidence | Implemented |
-| 5 — Reporting | Implemented |
-| 6 — Automated testing + CI | Complete only after the latest commit passes the full CI matrix |
-| 7 — VMware lab setup | Next physical-lab phase |
-
-Phase 1 is therefore already complete. The remaining question before calling the **coding-first milestone** complete is Phase 6 verification on the latest commit. Phase 7 begins only after that verification is genuinely green.
+Keep PCAP evidence outside the repository unless a specific submission artifact is intentionally version-controlled.
