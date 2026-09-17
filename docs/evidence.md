@@ -1,63 +1,168 @@
 # NetDefender Evidence Plan
 
-NetDefender uses evidence to connect a security claim to an observable test result. Development evidence can be generated without the live lab; final network evidence must come from the controlled VMware lab.
+NetDefender evidence connects a documented security question to an observable result. The final evidence should show the controlled traffic, the captured packets, the NetDefender analysis, and the resulting report without overstating what the detector proves.
 
-## Coding-First Evidence
+## Software Evidence
 
-Before the laptop is needed, capture/reproduce:
+The software evidence includes:
 
-- parser tests
-- TCP reconnaissance detector tests
-- UDP reconnaissance detector tests
-- SHA-256/HMAC tests
-- HTML report generation test
-- synthetic sample analysis
-- successful GitHub Actions run
+- parser and normalization tests;
+- TCP reconnaissance detector tests;
+- UDP reconnaissance detector tests;
+- SHA-256 and HMAC-SHA256 tests;
+- evidence-manifest tampering tests;
+- HTML report generation tests;
+- deterministic sample analysis;
+- successful GitHub Actions validation.
 
-These establish that the software works independently of the VM environment.
+The current automated suite passes 17/17 tests.
 
-## Live Lab Evidence
+## Real Lab Evidence
 
-After the laptop is available:
+The validated controlled lab evidence includes:
 
-- VMware view showing Kali and Metasploitable.
-- Metasploitable IP configuration.
-- Kali IP configuration and route.
-- Successful Kali → Metasploitable connectivity test.
-- Verified target identity before scanning.
-- Nmap command and sanitized output.
-- Wireshark/tshark capture showing reconnaissance traffic.
-- Exported event data supplied to NetDefender.
-- NetDefender detection finding generated from real evidence.
-- Cryptographic integrity verification before and after controlled modification.
+- Kali Linux at `172.16.198.129`;
+- Metasploitable at `172.16.198.128`;
+- Nmap-generated TCP reconnaissance traffic;
+- Nmap-generated UDP reconnaissance traffic;
+- Wireshark packet-capture evidence;
+- NetDefender analysis of the corresponding PCAP/PCAPNG files;
+- TCP positive detection;
+- UDP positive detection;
+- TCP below-threshold control with no finding;
+- HTML reports for the TCP positive, UDP positive, and TCP control cases.
 
-## Cryptographic Integrity Demonstration
+## Validated TCP Positive Result
 
-For a controlled evidence artifact:
+Capture:
 
-1. Generate a SHA-256 digest.
-2. Generate an HMAC-SHA256 tag using a test secret.
-3. Verify the original artifact.
-4. Modify the artifact in a controlled test.
-5. Verify again and document the failed integrity check.
+```text
+tcp-syn-scan-001.pcapng
+```
+
+Command:
+
+```bash
+sudo nmap -sS -p 1-100 172.16.198.128
+```
+
+NetDefender produced one:
+
+```text
+NET-RECON-001
+TCP SYN reconnaissance pattern detected
+Source: 172.16.198.129
+Target: 172.16.198.128
+Distinct destination ports: 1–100
+```
+
+## Validated TCP Control Result
+
+Capture:
+
+```text
+tcp-control-001.pcapng
+```
+
+NetDefender output:
+
+```text
+[]
+```
+
+The HTML report states:
+
+```text
+No findings were generated for the supplied evidence.
+```
+
+This is the negative validation case showing that below-threshold traffic does not produce a TCP reconnaissance finding.
+
+## Validated UDP Positive Result
+
+Capture:
+
+```text
+udp-scan-001.pcapng
+```
+
+Command:
+
+```bash
+sudo nmap -sU -p 1-20 172.16.198.128
+```
+
+NetDefender produced one:
+
+```text
+NET-RECON-002
+UDP reconnaissance pattern detected
+Source: 172.16.198.129
+Target: 172.16.198.128
+Distinct destination ports: 1–20
+Packet count: 87
+Observation window: 10 seconds
+```
+
+## HTML Reports
+
+The final controlled-lab report set is:
+
+```text
+tcp-syn-scan-001-report.html
+udp-scan-001-report.html
+tcp-control-001-report.html
+```
+
+The positive reports demonstrate detection. The control report demonstrates non-detection.
+
+## Cryptographic Evidence
+
+The cryptographic layer demonstrates controlled evidence integrity:
+
+1. Compute a SHA-256 digest of an evidence artifact.
+2. Compute an HMAC-SHA256 tag using a test-only secret.
+3. Build a manifest containing the cryptographic metadata and findings.
+4. Verify the original artifact.
+5. Modify the artifact in a controlled test.
+6. Verify again and confirm that verification fails.
 
 Secrets used for demonstrations must never be committed to the repository.
 
-## Evidence Naming
+## Evidence Interpretation
 
-Prefer descriptive names such as:
+A finding is a deterministic match against the documented NetDefender rule conditions. It is not proof of compromise, malicious intent, attribution, or universal detection coverage.
+
+The strongest presentation connects:
 
 ```text
-phase1-test-results.txt
-phase2-synthetic-detection.json
-phase4-integrity-check.txt
-phase7-vm-network.png
-phase8-nmap-scan.txt
-phase8-wireshark-capture.pcapng
-phase9-real-detection.json
-phase9-integrity-verification.txt
+Nmap command
+    ↓
+Actual packets
+    ↓
+Wireshark capture
+    ↓
+PCAP/PCAPNG
+    ↓
+NetDefender analysis
+    ↓
+Finding / no finding
+    ↓
+HTML report
 ```
 
-## Evidence Rule
+## Evidence Handling
 
-A phase is not considered complete because code exists. Software phases should have automated tests; live-lab phases must also be exercised with real controlled traffic and documented evidence.
+Keep final lab evidence outside the source repository unless an artifact is intentionally included for course submission.
+
+Do not commit:
+
+- passwords or private keys;
+- HMAC secrets;
+- personal traffic captures;
+- unrelated captures;
+- scans from outside the controlled lab;
+- machine-specific generated files;
+- virtual environments.
+
+Never invent a result that was not produced by the controlled experiment.
