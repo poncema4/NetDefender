@@ -1,148 +1,148 @@
 # NetDefender Architecture
 
-## 1. Purpose
+## Purpose
 
-NetDefender is a controlled network-security laboratory backed by a purpose-built analysis application for ISCI 6101: Network Security Engineering & Cryptography.
+NetDefender is a controlled network-security analysis application for ISCI 6101: Network Security Engineering & Cryptography. The software is intentionally focused: the VMware lab generates controlled traffic, while NetDefender performs the parsing, normalization, detection, evidence, and reporting work.
 
-The project deliberately keeps external infrastructure small. The user's VMware lab supplies controlled traffic; NetDefender supplies the primary software engineering, detection, cryptographic evidence, and reporting work.
-
-## 2. High-Level Architecture
+## High-Level Architecture
 
 ```text
 ┌──────────────────── CONTROLLED LAB ────────────────────┐
-│                                                        │
-│   Kali Linux ── Nmap ──> Metasploitable               │
-│       │                         │                      │
-│       └────── Wireshark/tshark capture ───────────────┘
-└───────────────────────────┬────────────────────────────┘
-                            │ pcap / structured events
-                            v
+│                                                       │
+│   Kali Linux ── Nmap ──> Metasploitable              │
+│        │                         │                     │
+│        └──── Wireshark / TShark capture ──────────────┘
+└───────────────────────────┬───────────────────────────┘
+                            │ PCAP / PCAPNG
+                            ▼
 ┌────────────────────────────────────────────────────────┐
 │                    NETDEFENDER                         │
 │                                                        │
-│ Input → Parser → Normalizer → Detection Engine         │
+│ PCAP → TShark extraction → Parser / Normalizer         │
 │                              │                         │
-│                              v                         │
-│                    Findings + Evidence                 │
+│                              ▼                         │
+│                       NetworkEvent                     │
 │                              │                         │
-│                              v                         │
-│                     SHA-256 + HMAC                     │
+│                              ▼                         │
+│                      Detection Engine                  │
+│                         │          │                   │
+│                         ▼          ▼                   │
+│                    TCP rule      UDP rule              │
+│                         │          │                   │
+│                         └────┬─────┘                   │
+│                              ▼                         │
+│                         Findings                       │
 │                              │                         │
-│                              v                         │
-│                     HTML / JSON Report                 │
-└───────────────────────────┬────────────────────────────┘
-                            v
-                    GitHub Actions CI
+│                    ┌─────────┴─────────┐               │
+│                    ▼                   ▼               │
+│                 JSON output        HTML report         │
+└────────────────────────────────────────────────────────┘
 ```
 
-## 3. Core Components
-
-### 3.1 Network Event Model
-
-`NetworkEvent` provides a stable representation of observed traffic: timestamp, source/destination addresses, protocol, ports, TCP flags, and packet length. Detection rules do not depend on the original capture format.
-
-### 3.2 Input Parser
-
-The parser accepts JSON and CSV event data and normalizes timestamps and numeric fields. The optional PCAP adapter invokes tshark and converts selected packet fields into the same event model.
-
-### 3.3 Detection Engine
-
-The supported reconnaissance rules are:
-
-- `NET-RECON-001`: burst of TCP SYN probes to many destination ports.
-- `NET-RECON-002`: burst of UDP probes to many destination ports.
-
-Rules are intentionally deterministic and explainable. A finding records the rule, source, target, severity, port evidence, packet count, and observation window.
-
-The complete rule contract is documented in `docs/rules.md`.
-
-### 3.4 Cryptographic Evidence
-
-SHA-256 creates a deterministic digest of an evidence artifact. HMAC-SHA256 demonstrates integrity/authenticity when a shared secret is available. Verification uses constant-time comparison for the HMAC check.
-
-The crypto layer is connected to the detection workflow: NetDefender produces evidence, then creates and verifies cryptographic metadata for that evidence.
-
-### 3.5 Reporting
-
-The application generates structured findings and a dependency-free HTML report. A TypeScript browser interface remains a possible later enhancement, but it will only be added if it solves a real analyst-facing problem.
-
-### 3.6 Local Setup Automation
-
-The repository provides:
-
-- `scripts/setup.sh` for Linux-like shells;
-- `scripts/setup.ps1` for Windows PowerShell;
-- `docs/setup.md` as the detailed setup and troubleshooting guide.
-
-The setup scripts create the virtual environment, install the project/test dependency, run the complete test suite, run the deterministic CLI sample, and check optional tshark availability.
-
-## 4. Current Software Flow
+Cryptographic evidence is implemented as a reusable evidence layer:
 
 ```text
-JSON/CSV events OR PCAP/PCAPNG
-              ↓
-      Parser / tshark adapter
-              ↓
-       NetworkEvent objects
-              ↓
-      Reconnaissance rules
-              ↓
-         Finding objects
-              ↓
-      JSON + HTML report
-              ↓
-   SHA-256 / HMAC evidence
-              ↓
-       Integrity verification
+Evidence bytes
+     ↓
+SHA-256 + HMAC-SHA256
+     ↓
+Integrity manifest
+     ↓
+Verification
+     ↓
+Original artifact = valid
+Modified artifact = rejected
 ```
 
-## 5. Phase Organization
+## Core Components
 
-The phases are intentionally ordered so all coding that can be completed away from the laptop happens first. The physical lab work comes after the software is ready.
+### Network Event Model
 
-| Phase | Focus | Work location | Status |
-|---|---|---|---|
-| 1 | Software architecture + data model | Anywhere | **Complete** |
-| 2 | Parser + validation | Anywhere | **Implemented** |
-| 3 | Detection engine | Anywhere | **Implemented** |
-| 4 | Cryptographic evidence | Anywhere | **Implemented** |
-| 5 | Reporting / analyst output | Anywhere | **Implemented** |
-| 6 | Automated testing + GitHub Actions + local setup automation | Anywhere | **In verification** |
-| 7 | VMware lab setup | Laptop | Pending |
-| 8 | Real Nmap + Wireshark integration | Laptop | Pending |
-| 9 | End-to-end validation + evidence | Laptop | Pending |
-| 10 | Final report + presentation | Anywhere | Pending |
+`NetworkEvent` provides a stable representation of one observed packet/event: timestamp, source and destination IP addresses, protocol, source and destination ports, TCP flags, and packet length.
 
-### Phase 6 definition of done
+`Finding` represents an explainable detection result with a rule identifier, title, severity, source, destination, and evidence dictionary.
 
-Phase 6 is not considered complete merely because a workflow file exists. The latest commit must have a successful CI run across the supported matrix, and the failure history must be understood and corrected at the underlying implementation/test/configuration layer.
+### Input Parser
 
-Once Phase 6 is verified green, the coding-first milestone is complete and the project moves to Phase 7.
+`parser.py` accepts JSON arrays and CSV event data. It normalizes timestamps, numeric fields, protocol text, and TCP flags supplied through normalized input.
 
-## 6. Design Decisions
+### PCAP / TShark Adapter
+
+`capture.py` invokes TShark for PCAP/PCAPNG input and extracts:
+
+- packet timestamp;
+- source IP;
+- destination IP;
+- numeric IP protocol;
+- TCP source/destination ports;
+- UDP source/destination ports;
+- TCP flags;
+- packet length.
+
+The adapter converts those fields into the same `NetworkEvent` model used by JSON/CSV input. It also normalizes TShark protocol values, TCP flag bitmasks, transport ports, and comma-separated IP fields.
+
+### Detection Engine
+
+The detection engine currently contains two deterministic rules:
+
+- `NET-RECON-001` — TCP SYN reconnaissance: at least 10 distinct TCP destination ports from one source to one target within 10 seconds, with SYN and without ACK.
+- `NET-RECON-002` — UDP reconnaissance: at least 8 distinct UDP destination ports from one source to one target within 10 seconds.
+
+The rules produce explainable evidence including destination ports, packet count, and observation window.
+
+### Cryptographic Evidence
+
+`crypto.py` provides SHA-256 and HMAC-SHA256 helpers. `evidence.py` builds an integrity manifest containing the evidence digest, HMAC, finding count, and findings, and verifies both digest and HMAC.
+
+These functions are available for the controlled evidence workflow; the basic CLI report path does not automatically create a cryptographic manifest.
+
+### Reporting
+
+`report.py` generates a dependency-free HTML report from findings. The CLI prints findings as JSON and can optionally write the same findings to an HTML report.
+
+### CLI
+
+`cli.py` accepts JSON, CSV, PCAP, and PCAPNG evidence files. Input format is inferred from the file extension unless explicitly supplied. The CLI runs the analyzer and prints stable JSON; `--html` writes an analyst-readable report.
+
+## End-to-End Workflow
+
+```text
+1. Generate authorized traffic in the isolated lab.
+2. Capture the traffic with Wireshark/TShark.
+3. Save the PCAP/PCAPNG evidence.
+4. Give the capture to NetDefender.
+5. TShark extracts the required packet fields.
+6. NetDefender normalizes the fields into NetworkEvent objects.
+7. Detection rules evaluate the normalized events.
+8. Matching conditions become Finding objects.
+9. Findings are printed as JSON and can be written as HTML.
+10. Evidence integrity can be demonstrated separately with SHA-256/HMAC-SHA256.
+```
+
+## Design Decisions
 
 ### Why Python?
 
-Python keeps parsing, detection, cryptography, reporting, and testing in one cohesive codebase. It also minimizes installation burden on the lab machine.
+Python keeps parsing, detection, cryptography, reporting, and testing in one cohesive codebase while minimizing installation overhead on the lab machine.
 
-### Why not add many enterprise products?
+### Why use TShark instead of a Python PCAP dependency?
 
-pfSense, Snort, OpenVPN, and similar systems can demonstrate useful concepts, but using all of them would turn the project into an infrastructure-configuration project. NetDefender instead uses a small controlled lab and puts the engineering depth into the software itself.
+The project uses TShark as a bounded adapter for real packet captures. This keeps the core application dependency-free while still allowing NetDefender to process real PCAP/PCAPNG evidence.
 
-### Why not add another language immediately?
+### Why not add many security products?
 
-A second language is useful only when it solves a real project problem. The current dependency-free HTML reporting layer gives a polished analyst-facing output without adding a frontend framework. TypeScript can be introduced later if a browser UI becomes technically justified.
+The project is designed around a small controlled lab and a purpose-built application. Adding multiple enterprise products would shift the project toward infrastructure configuration instead of software engineering.
 
-## 7. CI Design
+### Why no frontend framework?
 
-GitHub Actions tests the actual package installation rather than simply importing files from the checkout. The matrix covers Ubuntu and Windows across Python 3.11–3.14, then runs pytest and the CLI smoke test.
+The current dependency-free HTML report provides sufficient analyst-readable output for the MVP without introducing a separate frontend application.
 
-The workflow uses explicit Python versions and current GitHub-maintained setup actions. GitHub's current `setup-python` documentation recommends explicit version selection and supports dependency caching through the action.
+## CI Design
 
-The local setup scripts and CI use the same fundamental installation/test contract so that CI failures are more likely to represent real project problems rather than a completely different environment.
+GitHub Actions tests the actual package installation across Ubuntu and Windows using Python 3.11, 3.12, 3.13, and 3.14. It runs the complete pytest suite, the CLI against the deterministic sample, and an HTML report existence check.
 
-## 8. Security Boundary
+## Security Boundary
 
-All Nmap/security testing must remain inside the user's controlled VMware lab and target only the user's Metasploitable VM or other explicitly authorized lab systems.
+All Nmap/security testing must remain inside the controlled VMware lab and target only the authorized Metasploitable VM or another explicitly authorized lab system.
 
-No conclusion from NetDefender should be presented as broader than the controlled traffic actually tested.
+No conclusion from NetDefender should be presented as broader than the controlled traffic and documented rules actually tested.
